@@ -10,11 +10,11 @@ package com.google.cloud.healthcare.fdamystudies.utils;
 
 import com.google.cloud.healthcare.fdamystudies.bean.ErrorBean;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AppUtil {
-  private static final XLogger logger = XLoggerFactory.getXLogger(AppUtil.class.getName());
+  private static final Logger logger = LogManager.getLogger(AppUtil.class);
 
   public static ErrorBean dynamicResponse(
       int code, String userMessage, String type, String detailMessage) {

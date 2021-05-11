@@ -14,8 +14,8 @@ import com.google.cloud.healthcare.fdamystudies.config.ApplicationConfiguration;
 import com.google.cloud.healthcare.fdamystudies.mapper.AuditEventMapper;
 import com.google.cloud.healthcare.fdamystudies.utils.AppConstants;
 import com.google.cloud.healthcare.fdamystudies.utils.ProcessResponseException;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,14 +32,14 @@ public class ParticipantStudyInfoServiceImpl implements ParticipantStudyInfoServ
   @Autowired private ApplicationConfiguration appConfig;
   @Autowired private OAuthService oauthService;
 
-  private XLogger logger =
-      XLoggerFactory.getXLogger(ParticipantStudyInfoServiceImpl.class.getName());
+  private static final Logger logger =
+      LoggerFactory.getLogger(ParticipantStudyInfoServiceImpl.class);
 
   @Override
   public ParticipantStudyInformation getParticipantStudyInfo(
       String studyId, String participantId, AuditLogEventRequest auditRequest)
       throws ProcessResponseException {
-    logger.entry("begin getParticipantStudyInfo()");
+    logger.debug("ParticipantStudyInformation getParticipantStudyInfo() - starts ");
     HttpHeaders headers = null;
 
     ResponseEntity<?> responseEntity = null;
@@ -61,7 +61,7 @@ public class ParticipantStudyInfoServiceImpl implements ParticipantStudyInfoServ
     ParticipantStudyInformation partStudyInfo =
         (ParticipantStudyInformation) responseEntity.getBody();
 
-    logger.exit("getParticipantStudyInfo() - ends");
+    logger.debug("ParticipantStudyInformation getParticipantStudyInfo() - ends");
     return partStudyInfo;
   }
 }

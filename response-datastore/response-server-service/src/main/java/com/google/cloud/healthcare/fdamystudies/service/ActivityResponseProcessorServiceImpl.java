@@ -41,24 +41,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ActivityResponseProcessorServiceImpl implements ActivityResponseProcessorService {
-  @Autowired
-  @Qualifier("cloudFirestoreResponsesDaoImpl")
-  private ResponsesDao responsesDao;
+  @Autowired private ResponsesDao responsesDao;
 
   @Autowired private ApplicationConfiguration appConfig;
 
   @Autowired private ResponseServerAuditLogHelper responseServerAuditLogHelper;
 
-  private XLogger logger =
-      XLoggerFactory.getXLogger(ActivityResponseProcessorServiceImpl.class.getName());
+  private static final Logger logger =
+      LoggerFactory.getLogger(ActivityResponseProcessorServiceImpl.class);
 
   @Override
   public void saveActivityResponseDataForParticipant(
@@ -66,7 +63,8 @@ public class ActivityResponseProcessorServiceImpl implements ActivityResponsePro
       ActivityResponseBean questionnaireActivityResponseBean,
       AuditLogEventRequest auditRequest)
       throws Exception {
-    logger.entry("begin saveActivityResponseDataForParticipant()");
+    logger.debug(
+        "ActivityResponseProcessorServiceImpl saveActivityResponseDataForParticipant() - starts ");
     if (activityMetadataBeanFromWcp == null) {
       throw new ProcessResponseException("QuestionnaireActivityStructureBean is null.");
     }
@@ -128,7 +126,8 @@ public class ActivityResponseProcessorServiceImpl implements ActivityResponsePro
       throw new ProcessResponseException(
           "The activity ID in the response does not match activity ID in the metadata provided.");
     }
-    logger.exit("saveActivityResponseDataForParticipant() - ends ");
+    logger.debug(
+        "ActivityResponseProcessorServiceImpl saveActivityResponseDataForParticipant() - ends ");
   }
 
   @Override
@@ -339,7 +338,7 @@ public class ActivityResponseProcessorServiceImpl implements ActivityResponsePro
   private void saveActivityResponseData(
       ActivityResponseBean questionnaireActivityResponseBean, String rawResponseData)
       throws Exception {
-    logger.entry("begin saveActivityResponseData()");
+    logger.debug("ActivityResponseProcessorServiceImpl saveActivityResponseData() - starts ");
     // Add Timestamp to bean
     questionnaireActivityResponseBean.setCreatedTimestamp(
         String.valueOf(System.currentTimeMillis()));
@@ -372,7 +371,7 @@ public class ActivityResponseProcessorServiceImpl implements ActivityResponsePro
         studyCollectionName,
         AppConstants.ACTIVITIES_COLLECTION_NAME,
         dataToStoreActivityResults);
-    logger.exit("saveActivityResponseData() - ends ");
+    logger.debug("ActivityResponseProcessorServiceImpl saveActivityResponseData() - ends ");
   }
 
   private Map<String, Object> getMapForParticipantCollection(

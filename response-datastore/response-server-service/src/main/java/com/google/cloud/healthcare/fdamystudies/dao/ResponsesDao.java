@@ -11,7 +11,9 @@ package com.google.cloud.healthcare.fdamystudies.dao;
 import com.google.cloud.healthcare.fdamystudies.bean.StoredResponseBean;
 import com.google.cloud.healthcare.fdamystudies.utils.ProcessResponseException;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
+@Component
 public interface ResponsesDao {
   void saveStudyMetadata(
       String studyCollectionName, String studyId, Map<String, Object> dataToStore)

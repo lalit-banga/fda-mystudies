@@ -18,21 +18,21 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class CommonDaoImpl implements CommonDao {
 
-  private XLogger logger = XLoggerFactory.getXLogger(CommonDaoImpl.class.getName());
+  private static Logger logger = LoggerFactory.getLogger(CommonDaoImpl.class);
 
   @Autowired private EntityManagerFactory entityManagerFactory;
 
   @Override
   public ParticipantInfoEntity getParticipantInfoDetails(String participantId) {
-    logger.entry("begin getParticipantInfoDetails()");
+    logger.info("CommonDaoImpl getParticipantInfoDetails() - Ends ");
     CriteriaBuilder criteriaBuilder = null;
     CriteriaQuery<ParticipantInfoEntity> participantBoCriteriaQuery = null;
     Root<ParticipantInfoEntity> participantBoRoot = null;
@@ -53,13 +53,13 @@ public class CommonDaoImpl implements CommonDao {
     } catch (Exception e) {
       logger.error("CommonDaoImpl getParticipantInfoDetails() - error ", e);
     }
-    logger.exit("getParticipantInfoDetails() - Ends ");
+    logger.info("CommonDaoImpl getParticipantInfoDetails() - Ends ");
     return participantBO;
   }
 
   @Override
   public StudyEntity getStudyDetails(String customStudyId) {
-    logger.entry("begin getStudyDetails() - Starts ");
+    logger.info("CommonDaoImpl getStudyDetails() - Starts ");
     CriteriaBuilder criteriaBuilder = null;
     CriteriaQuery<StudyEntity> criteriaQuery = null;
     Root<StudyEntity> root = null;

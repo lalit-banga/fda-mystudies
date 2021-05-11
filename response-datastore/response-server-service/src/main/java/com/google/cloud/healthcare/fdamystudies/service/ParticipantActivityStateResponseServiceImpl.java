@@ -19,8 +19,8 @@ import com.google.cloud.healthcare.fdamystudies.utils.AppConstants;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,13 +29,13 @@ public class ParticipantActivityStateResponseServiceImpl
     implements ParticipantActivityStateResponseService {
   @Autowired private ParticipantActivitiesDao participantActivitiesDao;
 
-  private XLogger logger =
-      XLoggerFactory.getXLogger(ParticipantActivityStateResponseServiceImpl.class.getName());
+  private static final Logger logger =
+      LoggerFactory.getLogger(ParticipantActivityStateResponseServiceImpl.class);
 
   @Override
   public ActivitiesBean getParticipantActivities(String studyId, String participantId)
       throws ProcessActivityStateException {
-    logger.entry("begin getParticipantActivities()");
+    logger.debug("ActivityResponseProcessorServiceImpl getParticipantActivitiesList() - Starts ");
     List<ParticipantActivitiesEntity> participantActivityList = null;
     ActivitiesBean retActivitiesBean = new ActivitiesBean();
     retActivitiesBean.setMessage(AppConstants.FAILURE);
@@ -77,14 +77,14 @@ public class ParticipantActivityStateResponseServiceImpl
       retActivitiesBean.setActivities(participantActivityBeanList);
       retActivitiesBean.setMessage(AppConstants.SUCCESS_MSG);
     }
-    logger.exit("getParticipantActivities() - Ends ");
+    logger.info("ActivityResponseProcessorServiceImpl getParticipantActivitiesList() - Ends ");
     return retActivitiesBean;
   }
 
   @Override
   public void saveParticipantActivities(ActivityStateRequestBean activityStateRequestBean)
       throws ProcessActivityStateException {
-    logger.entry("begin saveParticipantActivities()");
+    logger.debug("saveParticipantActivities() - Start ");
     if (activityStateRequestBean.getStudyId() != null
         && activityStateRequestBean.getParticipantId() != null) {
       List<ParticipantActivitiesEntity> inputParticipantActivitiesList =
@@ -104,7 +104,7 @@ public class ParticipantActivityStateResponseServiceImpl
               + " studyId or participantId is null ");
     }
 
-    logger.exit("saveParticipantActivities() - Ends ");
+    logger.debug("saveParticipantActivities() - Ends ");
   }
 
   @Override

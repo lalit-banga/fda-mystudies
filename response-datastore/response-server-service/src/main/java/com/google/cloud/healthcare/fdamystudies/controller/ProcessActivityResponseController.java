@@ -14,23 +14,17 @@ import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.AC
 import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.RUN_ID;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_DATA_DELETION_FAILED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_RESPONSE_DATA_PROCESSING_FAILED;
-import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_RESPONSE_NOT_SAVED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_RESPONSE_RECEIPT_FAILED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_RESPONSE_RECEIVED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_RESPONSE_SAVED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVITY_STATE_SAVED_OR_UPDATED_AFTER_RESPONSE_SUBMISSION;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVTY_METADATA_RETRIEVAL_FAILED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.ACTIVTY_METADATA_RETRIEVED;
-import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.DATA_SHARING_CONSENT_VALUE_CONJOINED_WITH_ACTIVITY_RESPONSE_DATA;
-import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.DATA_SHARING_CONSENT_VALUE_RETRIEVAL_FAILED;
-import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.DATA_SHARING_CONSENT_VALUE_RETRIEVED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.PARTICIPANT_ACTIVITY_DATA_DELETED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.PARTICIPANT_ID_INVALID;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.PARTICIPANT_WITHDRAWAL_INTIMATION_FROM_PARTICIPANT_DATASTORE;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.READ_OPERATION_FOR_RESPONSE_DATA_FAILED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.READ_OPERATION_FOR_RESPONSE_DATA_SUCCEEDED;
-import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.WITHDRAWAL_INFORMATION_RETREIVAL_FAILED;
-import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.WITHDRAWAL_INFORMATION_RETRIEVED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.WITHDRAWAL_INFORMATION_UPDATED;
 import static com.google.cloud.healthcare.fdamystudies.common.ResponseServerEvent.WITHDRAWAL_INFORMATION_UPDATE_FAILED;
 
@@ -38,7 +32,6 @@ import com.google.cloud.healthcare.fdamystudies.bean.ActivityResponseBean;
 import com.google.cloud.healthcare.fdamystudies.bean.ActivityStateRequestBean;
 import com.google.cloud.healthcare.fdamystudies.bean.ErrorBean;
 import com.google.cloud.healthcare.fdamystudies.bean.ParticipantActivityBean;
-import com.google.cloud.healthcare.fdamystudies.bean.ParticipantStudyInformation;
 import com.google.cloud.healthcare.fdamystudies.bean.QuestionnaireActivityStructureBean;
 import com.google.cloud.healthcare.fdamystudies.bean.StoredResponseBean;
 import com.google.cloud.healthcare.fdamystudies.bean.StudyActivityMetadataRequestBean;
@@ -66,8 +59,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -92,10 +85,8 @@ public class ProcessActivityResponseController {
 
   @Autowired private ResponseServerAuditLogHelper responseServerAuditLogHelper;
 
-  private static final String BEGIN_REQUEST_LOG = "%s request";
-
-  private XLogger logger =
-      XLoggerFactory.getXLogger(ProcessActivityResponseController.class.getName());
+  private static final Logger logger =
+      LoggerFactory.getLogger(ProcessActivityResponseController.class);
 
   @ApiOperation(value = "Process activity response for participant and store in cloud fire store")
   @PostMapping("/participant/process-response")
@@ -103,7 +94,6 @@ public class ProcessActivityResponseController {
       @RequestBody ActivityResponseBean questionnaireActivityResponseBean,
       @RequestHeader String userId,
       HttpServletRequest request) {
-    logger.entry(String.format(BEGIN_REQUEST_LOG, request.getRequestURI()));
     AuditLogEventRequest auditRequest = AuditEventMapper.fromHttpServletRequest(request);
     auditRequest.setUserId(userId);
     String applicationId = null;
@@ -221,7 +211,7 @@ public class ProcessActivityResponseController {
         map.put(ACTIVITY_VERSION, activityVersion);
         responseServerAuditLogHelper.logEvent(ACTIVTY_METADATA_RETRIEVED, auditRequest, map);
 
-        // Get ParticipantStudyInfo from Registration Server
+        /* // Get ParticipantStudyInfo from Registration Server
         ParticipantStudyInformation partStudyInfo =
             partStudyInfoService.getParticipantStudyInfo(studyId, participantId, auditRequest);
         if (partStudyInfo == null) {
@@ -261,48 +251,47 @@ public class ProcessActivityResponseController {
         withdrawMap.put("withdrawn_status", String.valueOf(withdrawalStatus));
         responseServerAuditLogHelper.logEvent(
             WITHDRAWAL_INFORMATION_RETRIEVED, auditRequest, withdrawMap);
-        if (!withdrawalStatus) {
-          activityResponseProcessorService.saveActivityResponseDataForParticipant(
-              activityMetadatFromWcp, questionnaireActivityResponseBean, auditRequest);
-          savedResponseData = true;
+        if (!withdrawalStatus) {*/
+        activityResponseProcessorService.saveActivityResponseDataForParticipant(
+            activityMetadatFromWcp, questionnaireActivityResponseBean, auditRequest);
+        savedResponseData = true;
 
-          // Update Participant Activity State
-          ActivityStateRequestBean activityStateRequestBean = new ActivityStateRequestBean();
-          activityStateRequestBean.setParticipantId(participantId);
-          activityStateRequestBean.setStudyId(studyId);
+        // Update Participant Activity State
+        ActivityStateRequestBean activityStateRequestBean = new ActivityStateRequestBean();
+        activityStateRequestBean.setParticipantId(participantId);
+        activityStateRequestBean.setStudyId(studyId);
 
-          ParticipantActivityBean participantActivityBean = new ParticipantActivityBean();
-          participantActivityBean.setActivityId(activityId);
-          participantActivityBean.setActivityVersion(activityVersion);
-          participantActivityBean.setActivityState(AppConstants.COMPLETED);
-          List<ParticipantActivityBean> activity = new ArrayList<>();
-          activity.add(participantActivityBean);
-          activityStateRequestBean.setActivity(activity);
-          participantActivityStateResponseService.saveParticipantActivities(
-              activityStateRequestBean);
-          Map<String, String> activityStateMap = new HashedMap<>();
-          activityStateMap.put("activity_state", participantActivityBean.getActivityState());
-          activityStateMap.put(ACTIVITY_ID, activityId);
-          activityStateMap.put(ACTIVITY_VERSION, activityVersion);
-          activityStateMap.put(
-              RUN_ID, questionnaireActivityResponseBean.getMetadata().getActivityRunId());
-          responseServerAuditLogHelper.logEvent(
-              ACTIVITY_STATE_SAVED_OR_UPDATED_AFTER_RESPONSE_SUBMISSION,
-              auditRequest,
-              activityStateMap);
-          SuccessResponseBean srBean = new SuccessResponseBean();
-          srBean.setMessage(AppConstants.SUCCESS_MSG);
+        ParticipantActivityBean participantActivityBean = new ParticipantActivityBean();
+        participantActivityBean.setActivityId(activityId);
+        participantActivityBean.setActivityVersion(activityVersion);
+        participantActivityBean.setActivityState(AppConstants.COMPLETED);
+        List<ParticipantActivityBean> activity = new ArrayList<>();
+        activity.add(participantActivityBean);
+        activityStateRequestBean.setActivity(activity);
+        participantActivityStateResponseService.saveParticipantActivities(activityStateRequestBean);
+        Map<String, String> activityStateMap = new HashedMap<>();
+        activityStateMap.put("activity_state", participantActivityBean.getActivityState());
+        activityStateMap.put(ACTIVITY_ID, activityId);
+        activityStateMap.put(ACTIVITY_VERSION, activityVersion);
+        activityStateMap.put(
+            RUN_ID, questionnaireActivityResponseBean.getMetadata().getActivityRunId());
+        responseServerAuditLogHelper.logEvent(
+            ACTIVITY_STATE_SAVED_OR_UPDATED_AFTER_RESPONSE_SUBMISSION,
+            auditRequest,
+            activityStateMap);
+        SuccessResponseBean srBean = new SuccessResponseBean();
+        srBean.setMessage(AppConstants.SUCCESS_MSG);
 
-          Map<String, String> activityResponseMap = new HashedMap<>();
-          activityResponseMap.put(ACTIVITY_TYPE, questionnaireActivityResponseBean.getType());
-          activityResponseMap.put(ACTIVITY_ID, activityId);
-          activityResponseMap.put(ACTIVITY_VERSION, activityVersion);
-          activityResponseMap.put(
-              RUN_ID, questionnaireActivityResponseBean.getMetadata().getActivityRunId());
-          responseServerAuditLogHelper.logEvent(
-              ACTIVITY_RESPONSE_SAVED, auditRequest, activityResponseMap);
-          return new ResponseEntity<>(srBean, HttpStatus.OK);
-        } else {
+        Map<String, String> activityResponseMap = new HashedMap<>();
+        activityResponseMap.put(ACTIVITY_TYPE, questionnaireActivityResponseBean.getType());
+        activityResponseMap.put(ACTIVITY_ID, activityId);
+        activityResponseMap.put(ACTIVITY_VERSION, activityVersion);
+        activityResponseMap.put(
+            RUN_ID, questionnaireActivityResponseBean.getMetadata().getActivityRunId());
+        responseServerAuditLogHelper.logEvent(
+            ACTIVITY_RESPONSE_SAVED, auditRequest, activityResponseMap);
+        return new ResponseEntity<>(srBean, HttpStatus.OK);
+        /*} else {
           ErrorBean errorBean =
               AppUtil.dynamicResponse(
                   ErrorCode.EC_716.code(),
@@ -332,7 +321,7 @@ public class ProcessActivityResponseController {
                   + "\n Activity Version: "
                   + activityVersion);
           return new ResponseEntity<>(errorBean, HttpStatus.BAD_REQUEST);
-        }
+        }*/
       } else {
         ErrorBean errorBean =
             AppUtil.dynamicResponse(
@@ -407,7 +396,6 @@ public class ProcessActivityResponseController {
       @RequestParam("questionKey") String questionKey,
       @RequestHeader String userId,
       HttpServletRequest request) {
-    logger.entry(String.format(BEGIN_REQUEST_LOG, request.getRequestURI()));
     AuditLogEventRequest auditRequest = AuditEventMapper.fromHttpServletRequest(request);
     try {
 
@@ -503,7 +491,7 @@ public class ProcessActivityResponseController {
       @RequestParam(name = "participantId") String participantId,
       HttpServletRequest request) {
     AuditLogEventRequest auditRequest = AuditEventMapper.fromHttpServletRequest(request);
-    logger.entry(String.format(BEGIN_REQUEST_LOG, request.getRequestURI()));
+    logger.debug("ParticipantIdController withdrawParticipantFromStudy() - starts ");
     if (StringUtils.isBlank(studyId) || StringUtils.isBlank(participantId)) {
       logger.debug(
           "ParticipantIdController withdrawParticipantFromStudy() - studyId or participantId is blank ");

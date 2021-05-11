@@ -8,15 +8,44 @@
 
 package com.google.cloud.healthcare.fdamystudies.utils;
 
+import com.google.cloud.WriteChannel;
+import com.google.cloud.healthcare.fdamystudies.bean.ResponseRows;
+import com.google.cloud.healthcare.fdamystudies.bean.SavedActivityResponse;
+import com.google.cloud.healthcare.fdamystudies.bean.StoredResponseBean;
+import com.google.cloud.healthcare.fdamystudies.common.ErrorCode;
+import com.google.cloud.healthcare.fdamystudies.config.ApplicationConfiguration;
+import com.google.cloud.healthcare.fdamystudies.exceptions.ErrorCodeException;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.gson.Gson;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class ResponseServerUtil {
-  private static final XLogger logger =
-      XLoggerFactory.getXLogger(ResponseServerUtil.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(ResponseServerUtil.class);
+
+  @Autowired private Storage storageService;
+  @Autowired private ApplicationConfiguration appConfig;
 
   public enum ErrorCodes {
     INVALID_INPUT("INVALID_INPUT"),
@@ -78,7 +107,7 @@ public class ResponseServerUtil {
   }
 
   public static String getHashedValue(String secretToHash) {
-    logger.entry("begin getHashedValue()");
+    logger.info("ResponseServerUtil - getHashedValue() - starts");
     String generatedHash = null;
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -91,7 +120,180 @@ public class ResponseServerUtil {
     } catch (NoSuchAlgorithmException e) {
       logger.info("ResponseServerUtil getHashedValue() - error() ", e);
     }
-    logger.exit("getHashedValue() - ends");
+    logger.info("ResponseServerUtil - getHashedValue() - ends");
     return generatedHash;
+  }
+
+  public String saveFile(
+      String fileName, String content, String underDirectory, boolean isAbsoluteFileName) {
+    String absoluteFileName = null;
+    if (!StringUtils.isBlank(content)) {
+      if (isAbsoluteFileName) {
+        absoluteFileName = fileName;
+      } else {
+        absoluteFileName = underDirectory == null ? fileName : underDirectory + "/" + fileName;
+      }
+
+      BlobInfo blobInfo =
+          BlobInfo.newBuilder(appConfig.getCloudBucketName(), absoluteFileName).build();
+      byte[] bytes = null;
+
+      try (WriteChannel writer = storageService.writer(blobInfo)) {
+        bytes = content.getBytes();
+        writer.write(ByteBuffer.wrap(bytes, 0, bytes.length));
+      } catch (IOException e) {
+        logger.error("Save file in cloud storage failed", e);
+        throw new ErrorCodeException(ErrorCode.APPLICATION_ERROR);
+      }
+    }
+    return absoluteFileName;
+  }
+
+  public String getDocumentContent(String filepath) {
+    if (StringUtils.isNotBlank(filepath)) {
+      Blob blob = storageService.get(BlobId.of(appConfig.getCloudBucketName(), filepath));
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      blob.downloadTo(outputStream);
+      return new String(blob.getContent());
+    }
+
+    return StringUtils.EMPTY;
+  }
+
+  public void deleteDocument(String filepath) {
+    if (StringUtils.isNotBlank(filepath)) {
+      storageService.delete(BlobId.of(appConfig.getCloudBucketName(), filepath));
+    }
+  }
+
+  public StoredResponseBean convertResponseDataToBean(
+      String participantId,
+      List<Map<String, Object>> activityResponseMapList,
+      StoredResponseBean storedResponseBean) {
+    logger.info("begin convertResponseDataToBean()");
+    List<ResponseRows> responsesList = new ArrayList<>();
+    for (Map<String, Object> activityResponseMap : activityResponseMapList) {
+      ResponseRows responsesRow = new ResponseRows();
+      // Add participant Id
+      Map<Object, Object> mapPartId = new HashMap<>();
+      Map<Object, Object> mapPartIdValue = new HashMap<>();
+      mapPartIdValue.put(AppConstants.VALUE_KEY_STR, participantId);
+      mapPartId.put(AppConstants.PARTICIPANT_ID_RESPONSE, mapPartIdValue);
+      responsesRow.getData().add(mapPartId);
+
+      // Add Created Timestamp
+      Map<Object, Object> mapTS = new HashMap<>();
+      Map<Object, Object> mapTsValue = new HashMap<>();
+
+      // Format timestamp to date
+      long timestampFromResponse = 0;
+      try {
+        timestampFromResponse =
+            Long.parseLong((String) activityResponseMap.get(AppConstants.CREATED_TS_KEY));
+
+        DateFormat simpleDateFormat = new SimpleDateFormat(AppConstants.ISO_DATE_FORMAT_RESPONSE);
+        String formattedDate = simpleDateFormat.format(timestampFromResponse);
+        mapTsValue.put(AppConstants.VALUE_KEY_STR, formattedDate);
+
+      } catch (NumberFormatException ne) {
+        logger.error(
+            "Could not format createdTimestamp field to long. createdTimestamp value is: "
+                + timestampFromResponse);
+        mapTsValue.put(AppConstants.VALUE_KEY_STR, String.valueOf(timestampFromResponse));
+      }
+
+      mapTS.put(AppConstants.CREATED_RESPONSE, mapTsValue);
+      responsesRow.getData().add(mapTS);
+      SavedActivityResponse savedActivityResponse =
+          new Gson().fromJson(new Gson().toJson(activityResponseMap), SavedActivityResponse.class);
+      List<Object> results = savedActivityResponse.getResults();
+      this.addResponsesToMap(responsesRow, results);
+      responsesList.add(responsesRow);
+      storedResponseBean.setRows(responsesList);
+    }
+    if (storedResponseBean.getRows() != null) {
+      storedResponseBean.setRowCount(storedResponseBean.getRows().size());
+    }
+    return storedResponseBean;
+  }
+
+  private void addResponsesToMap(ResponseRows responsesRow, List<Object> results) {
+    logger.info("begin addResponsesToMap()");
+    if (results != null) {
+      for (Object result : results) {
+        if (result instanceof Map) {
+          Map<String, Object> mapResult = (Map<String, Object>) result;
+          String questionResultType = (String) mapResult.get(AppConstants.RESULT_TYPE_KEY);
+          String questionIdKey = null;
+          String questionValue = null;
+          Map<Object, Object> tempMapForQuestions = new HashMap<>();
+          Map<Object, Object> tempMapQuestionsValue = new HashMap<>();
+
+          if (!StringUtils.isBlank(questionResultType)) {
+            if (questionResultType.equalsIgnoreCase(AppConstants.GROUPED_FIELD_KEY)) {
+              Map<String, Object> resultsForm =
+                  (Map<String, Object>) mapResult.get("actvityValueGroup");
+              List<Object> obj = (List<Object>) resultsForm.get("results");
+              this.addResponsesToMap(responsesRow, obj);
+
+            } else {
+              questionIdKey = (String) mapResult.get(AppConstants.QUESTION_ID_KEY);
+              questionValue = (String) mapResult.get(AppConstants.VALUE_KEY_STR);
+              if (StringUtils.containsIgnoreCase(
+                      appConfig.getResponseSupportedQTypeDouble(), questionResultType)
+                  && !StringUtils.isBlank(questionValue)) {
+                Double questionValueDouble = null;
+                try {
+                  questionValueDouble = Double.parseDouble(questionValue);
+                  tempMapQuestionsValue.put(AppConstants.VALUE_KEY_STR, questionValueDouble);
+                  tempMapForQuestions.put(questionIdKey, tempMapQuestionsValue);
+                  responsesRow.getData().add(tempMapForQuestions);
+                } catch (NumberFormatException e) {
+                  logger.error(
+                      "Could not format value to Double. Value input string is: " + questionValue);
+                }
+              } else if (StringUtils.containsIgnoreCase(
+                      appConfig.getResponseSupportedQTypeDate(), questionResultType)
+                  && !StringUtils.isBlank(questionValue)) {
+                tempMapQuestionsValue.put(AppConstants.VALUE_KEY_STR, questionValue);
+                tempMapForQuestions.put(questionIdKey, tempMapQuestionsValue);
+                responsesRow.getData().add(tempMapForQuestions);
+              } else {
+                if (appConfig.getSupportStringResponse().equalsIgnoreCase(AppConstants.TRUE_STR)
+                    && StringUtils.containsIgnoreCase(
+                        appConfig.getResponseSupportedQTypeString(), questionResultType)
+                    && !StringUtils.isBlank(questionValue)) {
+                  tempMapQuestionsValue.put(AppConstants.VALUE_KEY_STR, questionValue);
+                  tempMapForQuestions.put(questionIdKey, tempMapQuestionsValue);
+                  responsesRow.getData().add(tempMapForQuestions);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public List<Map<String, Object>> filterResponseListByTimestamp(
+      List<Map<String, Object>> activityResponseMapList) {
+
+    activityResponseMapList.sort(
+        Comparator.nullsLast(
+            Comparator.comparing(
+                m -> Long.parseLong((String) m.get(AppConstants.CREATED_TS_KEY)),
+                Comparator.nullsLast(Comparator.reverseOrder()))));
+    // Get the latest response for activityId, bases on ordering by timestamp value
+    activityResponseMapList = Arrays.asList(activityResponseMapList.get(0));
+
+    return activityResponseMapList;
+  }
+
+  public StoredResponseBean initStoredResponseBean() {
+    StoredResponseBean retStoredResponseBean = new StoredResponseBean();
+    List<String> schemaNameList = Arrays.asList(AppConstants.RESPONSE_DATA_SCHEMA_NAME_LEGACY);
+    retStoredResponseBean.setSchemaName(schemaNameList);
+    retStoredResponseBean.setQueryName(AppConstants.RESPONSE_DATA_QUERY_NAME_LEGACY);
+    return retStoredResponseBean;
   }
 }

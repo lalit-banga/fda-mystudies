@@ -39,8 +39,8 @@ import javax.ws.rs.core.Context;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -60,10 +60,8 @@ public class ProcessActivityStateController {
 
   @Autowired private ResponseServerAuditLogHelper responseServerAuditLogHelper;
 
-  private static final String BEGIN_REQUEST_LOG = "%s request";
-
-  private XLogger logger =
-      XLoggerFactory.getXLogger(ProcessActivityStateController.class.getName());
+  private static final Logger logger =
+      LoggerFactory.getLogger(ProcessActivityStateController.class);
 
   @ApiOperation(value = "Get activity state")
   @GetMapping(
@@ -75,7 +73,6 @@ public class ProcessActivityStateController {
       @RequestParam("participantId") String participantId,
       HttpServletRequest request)
       throws ProcessActivityStateException {
-    logger.entry(String.format(BEGIN_REQUEST_LOG, request.getRequestURI()));
     AuditLogEventRequest auditRequest = AuditEventMapper.fromHttpServletRequest(request);
 
     if (StringUtils.isBlank(studyId) || StringUtils.isBlank(participantId)) {
@@ -110,7 +107,6 @@ public class ProcessActivityStateController {
       @Context HttpServletResponse response,
       @RequestHeader String userId,
       HttpServletRequest request) {
-    logger.entry(String.format(BEGIN_REQUEST_LOG, request.getRequestURI()));
     AuditLogEventRequest auditRequest = AuditEventMapper.fromHttpServletRequest(request);
     auditRequest.setUserId(userId);
     if (activityStateRequestBean == null

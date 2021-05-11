@@ -203,6 +203,11 @@
       <artifactId>spring-security-crypto</artifactId>
       <!-- <version>3.1.0.RELEASE</version> $NO-MVN-MAN-VER$ -->
     </dependency>
+    <dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-storage</artifactId>
+			<version>1.96.0</version>
+		</dependency>
   </dependencies>
   <reporting>
     <plugins>

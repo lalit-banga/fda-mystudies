@@ -16,18 +16,12 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteBatch;
 import com.google.cloud.firestore.WriteResult;
-import com.google.cloud.healthcare.fdamystudies.bean.ResponseRows;
-import com.google.cloud.healthcare.fdamystudies.bean.SavedActivityResponse;
 import com.google.cloud.healthcare.fdamystudies.bean.StoredResponseBean;
 import com.google.cloud.healthcare.fdamystudies.config.ApplicationConfiguration;
 import com.google.cloud.healthcare.fdamystudies.utils.AppConstants;
 import com.google.cloud.healthcare.fdamystudies.utils.ProcessResponseException;
-import com.google.gson.Gson;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import com.google.cloud.healthcare.fdamystudies.utils.ResponseServerUtil;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,18 +30,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.ext.XLogger;
 import org.slf4j.ext.XLoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@Qualifier("cloudFirestoreResponsesDaoImpl")
 public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
   @Autowired private ApplicationConfiguration appConfig;
   private Firestore responsesDb;
   private XLogger logger =
       XLoggerFactory.getXLogger(CloudFirestoreResponsesDaoImpl.class.getName());
+  @Autowired ResponseServerUtil responseServerUtil;
 
   @Override
   @Retryable(
@@ -57,7 +50,6 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
   public void saveStudyMetadata(
       String studyCollectionName, String studyId, Map<String, Object> dataToStore)
       throws ProcessResponseException {
-    logger.entry("begin saveStudyMetadata()");
     if (studyCollectionName != null && studyId != null && dataToStore != null) {
       try {
 
@@ -94,7 +86,6 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
       Map<String, Object> dataToStoreActivityResults)
       throws ProcessResponseException {
     try {
-      logger.entry("begin saveActivityResponseData()");
       initializeFirestore();
 
       Map<String, Object> studyVersionMap = new HashMap<>();
@@ -128,24 +119,22 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
       String questionKey)
       throws ProcessResponseException {
     try {
-      logger.entry("begin getActivityResponseDataForParticipant()");
       initializeFirestore();
       // Firestore does not allow compound queries without creating an index. Indexes can be created
       // only through the console or CLI, not programmatically. So this method will not depend on
       // the index to sort the data, based on timestamp in firestore. It will do the sort on the
       // query result object
       //
-      final Query activitiesQuery =
+      Query activitiesQuery =
           this.responsesDb
               .collection(studyCollectionName)
               .document(studyId)
               .collection(AppConstants.ACTIVITIES_COLLECTION_NAME)
               .whereEqualTo(AppConstants.PARTICIPANT_ID_KEY, participantId)
               .whereEqualTo(AppConstants.SITE_ID_KEY, siteId)
-              .whereEqualTo(AppConstants.ACTIVITY_ID_KEY, activityId);
-      if (!StringUtils.isBlank(questionKey)) {
-        activitiesQuery.whereEqualTo("results." + AppConstants.QUESTION_ID_KEY, questionKey);
-      }
+              .whereEqualTo(AppConstants.ACTIVITY_ID_KEY, activityId)
+              .whereEqualTo("results." + AppConstants.QUESTION_ID_KEY, questionKey);
+
       final ApiFuture<QuerySnapshot> querySnapshotActivities = activitiesQuery.get();
       List<QueryDocumentSnapshot> documentsActivities =
           querySnapshotActivities.get().getDocuments();
@@ -159,11 +148,13 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
         String lastResponseOnly = appConfig.getLastResponseOnly();
         if (!StringUtils.isBlank(lastResponseOnly)
             && lastResponseOnly.equalsIgnoreCase(AppConstants.TRUE_STR)) {
-          activityResponseMapList = filterResponseListByTimestamp(activityResponseMapList);
+          activityResponseMapList =
+              responseServerUtil.filterResponseListByTimestamp(activityResponseMapList);
         }
-        StoredResponseBean storedResponseBean = initStoredResponseBean();
+        StoredResponseBean storedResponseBean = responseServerUtil.initStoredResponseBean();
         storedResponseBean =
-            convertResponseDataToBean(participantId, activityResponseMapList, storedResponseBean);
+            responseServerUtil.convertResponseDataToBean(
+                participantId, activityResponseMapList, storedResponseBean);
         return storedResponseBean;
       }
     } catch (Exception e) {
@@ -181,7 +172,6 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
       String participantId)
       throws ProcessResponseException {
     try {
-      logger.entry("begin deleteActivityResponseDataForParticipant()");
       initializeFirestore();
       final Query activitiesQueryByParticipantId =
           this.responsesDb
@@ -220,7 +210,6 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
   public void updateWithdrawalStatusForParticipant(
       String studyCollectionName, String studyId, String participantId)
       throws ProcessResponseException {
-    logger.entry("begin updateWithdrawalStatusForParticipant()");
     try {
       initializeFirestore();
       final Query activitiesQueryByParticipantId =
@@ -263,7 +252,6 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
       String participantId,
       String activityId)
       throws ProcessResponseException {
-    logger.entry("begin getResponseDataScenarios()");
     initializeFirestore();
     // Sample queries
     // This is example code, to retrieve the response.
@@ -353,136 +341,5 @@ public class CloudFirestoreResponsesDaoImpl implements ResponsesDao {
       this.responsesDb = firestoreOptions.getService();
       logger.debug("In CloudFirestoreResponsesDaoImpl constructor, Firestore DB initialized");
     }
-  }
-
-  private StoredResponseBean convertResponseDataToBean(
-      String participantId,
-      List<Map<String, Object>> activityResponseMapList,
-      StoredResponseBean storedResponseBean) {
-    logger.entry("begin convertResponseDataToBean()");
-    List<ResponseRows> responsesList = new ArrayList<>();
-    for (Map<String, Object> activityResponseMap : activityResponseMapList) {
-      ResponseRows responsesRow = new ResponseRows();
-      // Add participant Id
-      Map<Object, Object> mapPartId = new HashMap<>();
-      Map<Object, Object> mapPartIdValue = new HashMap<>();
-      mapPartIdValue.put(AppConstants.VALUE_KEY_STR, participantId);
-      mapPartId.put(AppConstants.PARTICIPANT_ID_RESPONSE, mapPartIdValue);
-      responsesRow.getData().add(mapPartId);
-
-      // Add Created Timestamp
-      Map<Object, Object> mapTS = new HashMap<>();
-      Map<Object, Object> mapTsValue = new HashMap<>();
-
-      // Format timestamp to date
-      long timestampFromResponse = 0;
-      try {
-        timestampFromResponse =
-            Long.parseLong((String) activityResponseMap.get(AppConstants.CREATED_TS_KEY));
-
-        DateFormat simpleDateFormat = new SimpleDateFormat(AppConstants.ISO_DATE_FORMAT_RESPONSE);
-        String formattedDate = simpleDateFormat.format(timestampFromResponse);
-        mapTsValue.put(AppConstants.VALUE_KEY_STR, formattedDate);
-
-      } catch (NumberFormatException ne) {
-        logger.error(
-            "Could not format createdTimestamp field to long. createdTimestamp value is: "
-                + timestampFromResponse);
-        mapTsValue.put(AppConstants.VALUE_KEY_STR, String.valueOf(timestampFromResponse));
-      }
-
-      mapTS.put(AppConstants.CREATED_RESPONSE, mapTsValue);
-      responsesRow.getData().add(mapTS);
-      SavedActivityResponse savedActivityResponse =
-          new Gson().fromJson(new Gson().toJson(activityResponseMap), SavedActivityResponse.class);
-      List<Object> results = savedActivityResponse.getResults();
-      this.addResponsesToMap(responsesRow, results);
-      responsesList.add(responsesRow);
-      storedResponseBean.setRows(responsesList);
-    }
-    if (storedResponseBean.getRows() != null) {
-      storedResponseBean.setRowCount(storedResponseBean.getRows().size());
-    }
-    return storedResponseBean;
-  }
-
-  private void addResponsesToMap(ResponseRows responsesRow, List<Object> results) {
-    logger.entry("begin addResponsesToMap()");
-    if (results != null) {
-      for (Object result : results) {
-        if (result instanceof Map) {
-          Map<String, Object> mapResult = (Map<String, Object>) result;
-          String questionResultType = (String) mapResult.get(AppConstants.RESULT_TYPE_KEY);
-          String questionIdKey = null;
-          String questionValue = null;
-          Map<Object, Object> tempMapForQuestions = new HashMap<>();
-          Map<Object, Object> tempMapQuestionsValue = new HashMap<>();
-
-          if (!StringUtils.isBlank(questionResultType)) {
-            if (questionResultType.equalsIgnoreCase(AppConstants.GROUPED_FIELD_KEY)) {
-              Map<String, Object> resultsForm =
-                  (Map<String, Object>) mapResult.get("actvityValueGroup");
-              List<Object> obj = (List<Object>) resultsForm.get("results");
-              this.addResponsesToMap(responsesRow, obj);
-
-            } else {
-              questionIdKey = (String) mapResult.get(AppConstants.QUESTION_ID_KEY);
-              questionValue = (String) mapResult.get(AppConstants.VALUE_KEY_STR);
-              if (StringUtils.containsIgnoreCase(
-                      appConfig.getResponseSupportedQTypeDouble(), questionResultType)
-                  && !StringUtils.isBlank(questionValue)) {
-                Double questionValueDouble = null;
-                try {
-                  questionValueDouble = Double.parseDouble(questionValue);
-                  tempMapQuestionsValue.put(AppConstants.VALUE_KEY_STR, questionValueDouble);
-                  tempMapForQuestions.put(questionIdKey, tempMapQuestionsValue);
-                  responsesRow.getData().add(tempMapForQuestions);
-                } catch (NumberFormatException e) {
-                  logger.error(
-                      "Could not format value to Double. Value input string is: " + questionValue);
-                }
-              } else if (StringUtils.containsIgnoreCase(
-                      appConfig.getResponseSupportedQTypeDate(), questionResultType)
-                  && !StringUtils.isBlank(questionValue)) {
-                tempMapQuestionsValue.put(AppConstants.VALUE_KEY_STR, questionValue);
-                tempMapForQuestions.put(questionIdKey, tempMapQuestionsValue);
-                responsesRow.getData().add(tempMapForQuestions);
-              } else {
-                if (appConfig.getSupportStringResponse().equalsIgnoreCase(AppConstants.TRUE_STR)
-                    && StringUtils.containsIgnoreCase(
-                        appConfig.getResponseSupportedQTypeString(), questionResultType)
-                    && !StringUtils.isBlank(questionValue)) {
-                  tempMapQuestionsValue.put(AppConstants.VALUE_KEY_STR, questionValue);
-                  tempMapForQuestions.put(questionIdKey, tempMapQuestionsValue);
-                  responsesRow.getData().add(tempMapForQuestions);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private List<Map<String, Object>> filterResponseListByTimestamp(
-      List<Map<String, Object>> activityResponseMapList) {
-
-    activityResponseMapList.sort(
-        Comparator.nullsLast(
-            Comparator.comparing(
-                m -> Long.parseLong((String) m.get(AppConstants.CREATED_TS_KEY)),
-                Comparator.nullsLast(Comparator.reverseOrder()))));
-    // Get the latest response for activityId, bases on ordering by timestamp value
-    activityResponseMapList = Arrays.asList(activityResponseMapList.get(0));
-
-    return activityResponseMapList;
-  }
-
-  private StoredResponseBean initStoredResponseBean() {
-    StoredResponseBean retStoredResponseBean = new StoredResponseBean();
-    List<String> schemaNameList = Arrays.asList(AppConstants.RESPONSE_DATA_SCHEMA_NAME_LEGACY);
-    retStoredResponseBean.setSchemaName(schemaNameList);
-    retStoredResponseBean.setQueryName(AppConstants.RESPONSE_DATA_QUERY_NAME_LEGACY);
-    return retStoredResponseBean;
   }
 }

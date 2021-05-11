@@ -29,10 +29,9 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.ext.XLogger;
-import org.slf4j.ext.XLoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -47,11 +46,9 @@ public class StudyMetadataServiceImpl implements StudyMetadataService {
   @Autowired private RestTemplate restTemplate;
   @Autowired private ApplicationConfiguration appConfig;
 
-  @Autowired
-  @Qualifier("cloudFirestoreResponsesDaoImpl")
-  private ResponsesDao responsesDao;
+  @Autowired private ResponsesDao responsesDao;
 
-  private XLogger logger = XLoggerFactory.getXLogger(StudyMetadataServiceImpl.class.getName());
+  private static Logger logger = LoggerFactory.getLogger(StudyMetadataServiceImpl.class);
 
   @Override
   public void saveStudyMetadata(StudyMetadataBean studyMetadataBean)
@@ -83,7 +80,7 @@ public class StudyMetadataServiceImpl implements StudyMetadataService {
     logger.info("saveStudyMetadata() : \n Study Collection Name: " + studyCollectionName);
     responsesDao.saveStudyMetadata(
         studyCollectionName, studyMetadataBean.getStudyId(), dataToStore);
-    logger.exit(
+    logger.debug(
         "saveStudyMetadata() : \n Study Collection Name: "
             + studyCollectionName
             + " added successfully");
@@ -95,7 +92,7 @@ public class StudyMetadataServiceImpl implements StudyMetadataService {
       StudyActivityMetadataRequestBean studyActivityMetadataRequestBean,
       AuditLogEventRequest auditRequest)
       throws ProcessResponseException {
-    logger.entry("begin getStudyActivityMetadata()");
+    logger.debug("StudyMetadataServiceImpl getStudyActivityMetadata() - starts ");
     HttpHeaders headers = null;
 
     ResponseEntity<?> responseEntity = null;
@@ -124,7 +121,7 @@ public class StudyMetadataServiceImpl implements StudyMetadataService {
         (QuestionnaireActivityMetaDataBean) responseEntity.getBody();
     QuestionnaireActivityStructureBean retQuestionnaireActivityStructureBean =
         metadataParentBean.getActivity();
-    logger.exit("getStudyActivityMetadata() - ends");
+    logger.debug("StudyMetadataServiceImpl getStudyActivityMetadata() - ends");
     return retQuestionnaireActivityStructureBean;
   }
 

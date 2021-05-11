@@ -59,4 +59,7 @@ public class ApplicationConfiguration {
 
   @Value("${enroll.mgmt.service.url}")
   private String regServerPartStudyInfoUrl;
+
+  @Value("${cloud.bucket.name}")
+  private String cloudBucketName;
 }
