@@ -902,7 +902,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
 
     // Update User Defaults
     let ud = UserDefaults.standard
-    ud.set(false, forKey: kPasscodeIsPending)
+    ud.set(true, forKey: kPasscodeIsPending)
     ud.set(false, forKey: kShowNotification)
     ud.synchronize()
 
@@ -938,7 +938,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       ORKPasscodeViewController.removePasscodeFromKeychain()
     }
     let ud = UserDefaults.standard
-    ud.set(false, forKey: kPasscodeIsPending)
+    ud.set(true, forKey: kPasscodeIsPending)
     ud.set(false, forKey: kShowNotification)
     ud.synchronize()
 
@@ -1358,7 +1358,7 @@ extension AppDelegate: ORKTaskViewControllerDelegate {
     case ORKTaskViewControllerFinishReason.completed:
       if !(taskViewController.task?.identifier == kConsentTaskIdentifier) {  // other surveys/Active tasks/ Passcode
         let ud = UserDefaults.standard
-        ud.set(false, forKey: kPasscodeIsPending)
+        ud.set(true, forKey: kPasscodeIsPending)
         ud.synchronize()
         self.appIsResignedButDidNotEnteredBackground = false
       }
