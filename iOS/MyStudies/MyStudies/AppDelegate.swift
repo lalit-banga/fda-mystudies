@@ -283,6 +283,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
 
     // set Flag to handle foreground to background transition
     self.appIsResignedButDidNotEnteredBackground = false
+    let ud = UserDefaults.standard
+    ud.set(false, forKey: kPasscodeIsPending)
     blockerScreen?.isHidden = true
     blockerScreen?.removeFromSuperview()
   }
