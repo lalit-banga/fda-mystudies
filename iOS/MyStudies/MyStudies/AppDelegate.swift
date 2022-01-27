@@ -1860,6 +1860,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 
     let userInfo = response.notification.request.content.userInfo
     UIApplication.shared.applicationIconBadgeNumber = 0
+    
+    print("UserInfo11 :: \(userInfo)")
 
     if UIApplication.shared.applicationState == UIApplication.State.background
       || UIApplication.shared.applicationState == UIApplication.State.active

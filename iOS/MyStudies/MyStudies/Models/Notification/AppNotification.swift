@@ -68,7 +68,7 @@ class AppNotification {
     case study = "Study"
     case resource = "Resource"
     case activity = "Activity"
-    case studyEvent
+    case studyEvent = "studyEvent"
   }
 
   var id: String?
