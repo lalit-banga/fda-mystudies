@@ -637,7 +637,13 @@ class StudyListViewController: UIViewController {
   }
 
   /// Checks `Study` status and do the action.
-  func performTaskBasedOnStudyStatus() {
+  func performTaskBasedOnStudyStatus(studyID: String? = nil) {
+    // Study ID from notification
+    if let studyID = studyID,
+        let study = studiesList.filter({ $0.studyId == studyID }).first {
+      Study.updateCurrentStudy(study: study)
+    }
+    
     guard let study = Study.currentStudy else { return }
 
     if User.currentUser.userType == UserType.loggedInUser {
