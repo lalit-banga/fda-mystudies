@@ -654,6 +654,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       leftController.changeViewController(.studyList)
       leftController.createLeftmenuItems()
     }
+    
+    if let dashboardTabBar = initialVC as? UITabBarController {
+      dashboardTabBar.selectedIndex = 2 // Go to resources screen.
+      if let resourcesVC = (dashboardTabBar.viewControllers?.first as? UINavigationController)?.topViewController as? ResourcesViewController
+      {
+        resourcesVC.userDidNavigateFromNotification()
+      }
+    }
 
   }
 
@@ -725,14 +733,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           subType == .activity ? 0 : 2
         }
         
-      case .study, .studyEvent:  // Study Notifications
+      case .study,.studyEvent ,.announcement:  // Study Notifications
         
         let leftController =
         (menuVC as? FDASlideMenuViewController)?.leftViewController
         as? LeftMenuViewController
         
         if !(initialVC is StudyListViewController) {
-          
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
@@ -755,7 +764,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           leftController?.createLeftmenuItems()
         }
         
-      case .announcement:
+      default:
         break
       }
     }
@@ -800,7 +809,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         } else {
           // switch to activity tab
           (initialVC as? UITabBarController)?.selectedIndex =
-          subType == .activity ? 0 : 2
+          subType == .resource ? 0 : 2
         }
         
       case .study, .studyEvent:  // Study Notifications
@@ -1075,6 +1084,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if let studyId = userInfoDetails?[kStudyId] as? String,
              !studyId.isEmpty
           {
+
 //            if Gateway.instance.studies?.isEmpty == false {
 //              guard
 //                let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
@@ -1937,9 +1947,9 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
   ) {
     let userInfo = notification.request.content.userInfo
 
-    if userInfo.count > 0 && userInfo.keys.contains(kType) {
-      self.updateNotification(userInfoDetails: userInfo as? JSONDictionary)
-    }
+//    if userInfo.count > 0 && userInfo.keys.contains(kType) {
+//      self.updateNotification(userInfoDetails: userInfo as? JSONDictionary)
+//    }
     if let userInfo = userInfo as? JSONDictionary {
       refreshStudyActivitiesState(with: userInfo)
     }
@@ -1965,11 +1975,11 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     }
 
     // UserInfo is valid & contains Type for Notification
-    if userInfo.count > 0 && userInfo.keys.contains(kType) {
-      self.updateNotification(userInfoDetails:  userInfo as? JSONDictionary)
-    } else {
-      self.handleLocalNotification(userInfoDetails: userInfo as? JSONDictionary ?? [:])
-    }
+//    if userInfo.count > 0 && userInfo.keys.contains(kType) {
+//      self.updateNotification(userInfoDetails:  userInfo as? JSONDictionary)
+//    } else {
+//      self.handleLocalNotification(userInfoDetails: userInfo as? JSONDictionary ?? [:])
+//    }
     completionHandler()
   }
 }
