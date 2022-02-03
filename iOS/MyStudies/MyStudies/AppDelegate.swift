@@ -300,6 +300,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     self.checkPasscode(viewController: (application.windows[0].rootViewController)!)
     self.checkForStudyUpdates()
     let number = UIApplication.shared.applicationIconBadgeNumber
+    print(number)
     if number >= 1 {
       self.updateNotification(userInfoDetails: nil)
     }
@@ -397,7 +398,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       User.currentUser.settings?.remoteNotifications = true
       User.currentUser.settings?.localNotifications = true
       // Update device Token to Local server
-      UserServices().updateUserProfile(deviceToken: deviceTokenString, delegate: self)
+//      UserServices().updateUserProfile(deviceToken: deviceTokenString, delegate: self)
     }
   }
 
@@ -667,28 +668,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
 
   /// Handler for local & remote notification
   /// - Parameter userInfoDetails: contains the info for notification
-  func handleLocalAndRemoteNotification(userInfoDetails: [String: Any]?) {
+  func handleLocalAndRemoteNotification(userInfoDetails: JSONDictionary?) {
     // User info is valid
-    if let userInfoDetails = userInfoDetails,
-       !userInfoDetails.isEmpty
+    print("UserDetails :: \(userInfoDetails)")
+//    if let userInfoDetails = userInfoDetails,
+//       !userInfoDetails.isEmpty
+//    {
+//      self.notificationDetails = nil
+//    }
+    
+    if let studyId = userInfoDetails?[kStudyId] as? String,
+       !studyId.isEmpty
     {
+      let notificationType = userInfoDetails![kNotificationType] as? String ?? ""
       
-      let notificationType = userInfoDetails[kNotificationType] as? String ?? ""
-      
-      let subType = AppNotification.NotificationSubType(rawValue: (userInfoDetails[kNotificationSubType] as? String ?? "")) ?? .announcement
+      let subType = AppNotification.NotificationSubType(rawValue: (userInfoDetails![kNotificationSubType] as? String ?? "")) ?? .announcement
+      print(AppNotification.NotificationType(rawValue: notificationType)!)
       
       switch AppNotification.NotificationType(rawValue: notificationType) {
       case .gateway:
-        hanldeGatewayNotificationType(userInfoDetails: userInfoDetails, subType: subType)
+        hanldeGatewayNotificationType(userInfoDetails: userInfoDetails!, subType: subType)
         break
       case .study:
-        handleStudyNotificationType(userInfoDetails: userInfoDetails, subType: subType)
-        break
+        handleStudyNotificationType(userInfoDetails: userInfoDetails!, subType: subType)
       default:
         print(notificationType)
+      
       }
-      self.notificationDetails = nil
-    }
+      }
   }
   
   private func handleStudyNotificationType(userInfoDetails: [String: Any], subType: AppNotification.NotificationSubType) {
@@ -717,9 +724,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       }
       // Handling Notifications based on SubType
       switch subType {
-      case .activity, .resource:  // Activity & Resource  Notifications
+      case .activity:  // Activity & Resource  Notifications
         
         if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
           // push tabbar and switch to activty tab
           if let initialVC = initialVC {
             self.pushToTabbar(
@@ -728,12 +737,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             )
           }
         } else {
-          // switch to activity tab
+          // switch to resource tab
           (initialVC as? UITabBarController)?.selectedIndex =
-          subType == .activity ? 0 : 2
+          subType == .resource ? 0 : 2
         }
         
-      case .study,.studyEvent ,.announcement:  // Study Notifications
+      case .resource:
+        if !(initialVC is UITabBarController) {
+//          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+          // push tabbar and switch to activty tab
+          if let initialVC = initialVC {
+            self.pushToTabbar(
+              viewController: initialVC,
+              selectedTab: 2
+            )
+          }
+        }
+//        else {
+//          // switch to resource tab
+//          (initialVC as? UITabBarController)?.selectedIndex = 2
+//        }
+        
+      case .study, .studyEvent:  // Study Notifications
         
         let leftController =
         (menuVC as? FDASlideMenuViewController)?.leftViewController
@@ -762,6 +788,37 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           
           leftController?.changeViewController(.studyList)
           leftController?.createLeftmenuItems()
+        }
+        
+//      case .studyEvent:
+//        if User.currentUser.userType == UserType.loggedInUser {
+//
+//          guard let study = Study.currentStudy else { return }
+//
+//          if study.status == .active {
+//            let userStudyStatus = study.userParticipateState.status
+//
+//            if userStudyStatus == .yetToEnroll {
+//              self.navigateToStudyHome(viewController: StudyHomeViewController(), studyID: studyId)
+//            }
+//          }
+//        }
+        
+      case .announcement:
+        if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+          // push tabbar and switch to activty tab
+          if let initialVC = initialVC {
+            self.pushToTabbar(
+              viewController: initialVC,
+              selectedTab: subType == .announcement ? 0 : 2
+            )
+          }
+        } else {
+          // switch to activity tab
+          (initialVC as? UITabBarController)?.selectedIndex =
+          subType == .announcement ? 0 : 2
         }
         
       default:
@@ -796,9 +853,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       }
       // Handling Notifications based on SubType
       switch subType {
-      case .activity, .resource:  // Activity & Resource  Notifications
+      case .activity:  // Activity & Resource  Notifications
         
         if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
           // push tabbar and switch to activty tab
           if let initialVC = initialVC {
             self.pushToTabbar(
@@ -812,6 +871,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           subType == .resource ? 0 : 2
         }
         
+      case .resource:
+        if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+          // push tabbar and switch to activty tab
+          if let initialVC = initialVC {
+            self.pushToTabbar(
+              viewController: initialVC,
+              selectedTab: 2
+            )
+          }
+        }
+        
       case .study, .studyEvent:  // Study Notifications
         
         let leftController =
@@ -819,6 +891,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         as? LeftMenuViewController
         
         if !(initialVC is StudyListViewController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
           
           if initialVC is ProfileViewController
               || initialVC
@@ -843,9 +916,37 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         }
         
       case .announcement:
+        if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+          // push tabbar and switch to activty tab
+          if let initialVC = initialVC {
+            self.pushToTabbar(
+              viewController: initialVC,
+              selectedTab: subType == .announcement ? 0 : 2
+            )
+          }
+        } else {
+          // switch to activity tab
+          (initialVC as? UITabBarController)?.selectedIndex =
+          subType == .announcement ? 0 : 2
+        }
+        
+      default:
         break
       }
     }
+  }
+  
+  func navigateToStudyHome(viewController: UIViewController, studyID: String? = nil) {
+    let studyStoryBoard = UIStoryboard(name: kStudyStoryboard, bundle: Bundle.main)
+    let studyHomeController =
+      (studyStoryBoard.instantiateViewController(
+        withIdentifier: String(describing: StudyHomeViewController.classForCoder())
+      )
+      as? StudyHomeViewController)!
+//    studyHomeController.delegate = self
+    viewController.navigationController?.pushViewController(studyHomeController, animated: true)
   }
 
   /// Push to tabbar Controller with tabs Activity, Dashboard & Resource
@@ -1084,19 +1185,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if let studyId = userInfoDetails?[kStudyId] as? String,
              !studyId.isEmpty
           {
+            let notificationType = userInfoDetails![kNotificationType] as? String ?? ""
+            
+            let subType = AppNotification.NotificationSubType(rawValue: (userInfoDetails![kNotificationSubType] as? String ?? "")) ?? .announcement
+            print(AppNotification.NotificationType(rawValue: notificationType)!)
+            
+            switch AppNotification.NotificationType(rawValue: notificationType) {
+            case .gateway:
+              hanldeGatewayNotificationType(userInfoDetails: userInfoDetails!, subType: subType)
+              break
+            case .study:
+              handleStudyNotificationType(userInfoDetails: userInfoDetails!, subType: subType)
+            default:
+              print(notificationType)
+            
+            }
+//            (studyListVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
 
-//            if Gateway.instance.studies?.isEmpty == false {
-//              guard
-//                let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
-//                  .first
-//              else { return }
-//              Study.updateCurrentStudy(study: study)
-//            }
-            (studyListVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+            }
           }
         }
       }
-    }
   }
 
   private func refreshStudyActivitiesState(with userInfo: JSONDictionary) {
@@ -1947,9 +2056,10 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
   ) {
     let userInfo = notification.request.content.userInfo
 
-//    if userInfo.count > 0 && userInfo.keys.contains(kType) {
-//      self.updateNotification(userInfoDetails: userInfo as? JSONDictionary)
-//    }
+    if userInfo.count > 0 && userInfo.keys.contains(kType) {
+
+      self.updateNotification(userInfoDetails: userInfo as? JSONDictionary)
+    }
     if let userInfo = userInfo as? JSONDictionary {
       refreshStudyActivitiesState(with: userInfo)
     }
@@ -1967,19 +2077,22 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     
     print("UserInfo11 :: \(userInfo)")
 
-    if UIApplication.shared.applicationState == UIApplication.State.background
-      || UIApplication.shared.applicationState == UIApplication.State.active
-    {
+//    if UIApplication.shared.applicationState == UIApplication.State.background
+//      || UIApplication.shared.applicationState == UIApplication.State.active
+//    {
+      print("UserInfo :: \(userInfo)")
 
-      self.handleLocalAndRemoteNotification(userInfoDetails: (userInfo as? [String: Any])!)
-    }
+//      self.handleLocalAndRemoteNotification(userInfoDetails: (userInfo as? JSONDictionary ?? [:]))
+//    }
 
     // UserInfo is valid & contains Type for Notification
-//    if userInfo.count > 0 && userInfo.keys.contains(kType) {
+    if userInfo.count > 0 && userInfo.keys.contains(kType) {
+      self.handleLocalAndRemoteNotification(userInfoDetails: (userInfo as? JSONDictionary ?? [:]))
+//      print("UserInfoUN :: \(userInfo)")
 //      self.updateNotification(userInfoDetails:  userInfo as? JSONDictionary)
 //    } else {
 //      self.handleLocalNotification(userInfoDetails: userInfo as? JSONDictionary ?? [:])
-//    }
+    }
     completionHandler()
   }
 }

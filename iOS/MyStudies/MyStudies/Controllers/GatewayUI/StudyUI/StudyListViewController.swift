@@ -568,13 +568,13 @@ class StudyListViewController: UIViewController {
   func handleStudyListResponse() {
     if (Gateway.instance.studies?.count)! > 0 {
       loadStudiesFromDatabase()
-      let appDelegate = (UIApplication.shared.delegate as? AppDelegate)!
+//      let appDelegate = (UIApplication.shared.delegate as? AppDelegate)!
 
-      if appDelegate.notificationDetails != nil, User.currentUser.userType == .loggedInUser {
-        appDelegate.handleLocalAndRemoteNotification(
-          userInfoDetails: appDelegate.notificationDetails!
-        )
-      }
+//      if appDelegate.notificationDetails != nil, User.currentUser.userType == .loggedInUser {
+//        appDelegate.handleLocalAndRemoteNotification(
+//          userInfoDetails: appDelegate.notificationDetails!
+//        )
+//      }
     } else {
       tableView?.isHidden = true
       labelHelperText.text = kHelperTextForOffline
@@ -645,7 +645,9 @@ class StudyListViewController: UIViewController {
     }
     
     guard let study = Study.currentStudy else { return }
-
+    print("User Status : ", User.currentUser.userType as Any)
+    print("User Study Status : ", study.status as Any)
+    print("User Participate Status : ", study.userParticipateState.status as Any)
     if User.currentUser.userType == UserType.loggedInUser {
       if study.status == .active {
         let userStudyStatus = study.userParticipateState.status
@@ -658,10 +660,15 @@ class StudyListViewController: UIViewController {
             addProgressIndicator()
             perform(#selector(loadStudyDetails), with: self, afterDelay: 1)
           }
-        } else {
+        }
+        else if userStudyStatus == .yetToEnroll {
+          checkDatabaseForStudyInfo(study: study)
+        }
+        else {
           checkForStudyUpdate(study: study)
         }
-      } else if Study.currentStudy?.status == .paused {
+      }
+      else if Study.currentStudy?.status == .paused {
         let userStudyStatus = study.userParticipateState.status
 
         if userStudyStatus == .completed || userStudyStatus == .enrolled {
@@ -679,7 +686,15 @@ class StudyListViewController: UIViewController {
       } else {
         checkForStudyUpdate(study: study)
       }
-    } else {
+    }
+//      else if Study.currentStudy?.status == .active {
+//        let userStudyStatus = study.userParticipateState.status
+//        
+//        if userStudyStatus == .yetToEnroll {
+//          checkDatabaseForStudyInfo(study: study)
+//        }
+//      }
+    else {
       checkForStudyUpdate(study: study)
     }
   }
