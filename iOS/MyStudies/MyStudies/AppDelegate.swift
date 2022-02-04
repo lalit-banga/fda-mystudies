@@ -704,13 +704,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     {
       var initialVC: UIViewController?
       
-      if Gateway.instance.studies?.isEmpty == false {
-        guard
-          let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
-            .first
-        else { return }
-        Study.updateCurrentStudy(study: study)
-      }
+//      if Gateway.instance.studies?.isEmpty == false {
+//        guard
+//          let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
+//            .first
+//        else { return }
+//        Study.updateCurrentStudy(study: study)
+//      }
       // fetch the visible view controller
       let navigationController = self.window?.rootViewController as? UINavigationController
       let menuVC = navigationController?.viewControllers.last
@@ -737,37 +737,33 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             )
           }
         } else {
-          // switch to resource tab
           (initialVC as? UITabBarController)?.selectedIndex =
-          subType == .resource ? 0 : 2
+          subType == .activity ? 0 : 2
         }
         
       case .resource:
         if !(initialVC is UITabBarController) {
 //          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
 
-          // push tabbar and switch to activty tab
+          // push tabbar and switch to resource tab
           if let initialVC = initialVC {
             self.pushToTabbar(
               viewController: initialVC,
               selectedTab: 2
             )
           }
-        }
-//        else {
-//          // switch to resource tab
-//          (initialVC as? UITabBarController)?.selectedIndex = 2
-//        }
+        } 
         
       case .study, .studyEvent:  // Study Notifications
-        
+        //        notificationDetails = userInfoDetails
         let leftController =
         (menuVC as? FDASlideMenuViewController)?.leftViewController
         as? LeftMenuViewController
         
-        if !(initialVC is StudyListViewController) {
+        if (initialVC is StudyListViewController) {
+          (initialVC as? StudyListViewController)!.addRightNavigationItem()
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
+        } else if !(initialVC is StudyListViewController) {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
@@ -790,20 +786,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           leftController?.createLeftmenuItems()
         }
         
-//      case .studyEvent:
-//        if User.currentUser.userType == UserType.loggedInUser {
-//
-//          guard let study = Study.currentStudy else { return }
-//
-//          if study.status == .active {
-//            let userStudyStatus = study.userParticipateState.status
-//
-//            if userStudyStatus == .yetToEnroll {
-//              self.navigateToStudyHome(viewController: StudyHomeViewController(), studyID: studyId)
-//            }
-//          }
-//        }
-        
       case .announcement:
         if !(initialVC is UITabBarController) {
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
@@ -820,9 +802,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           (initialVC as? UITabBarController)?.selectedIndex =
           subType == .announcement ? 0 : 2
         }
-        
-      default:
-        break
       }
     }
   }
@@ -833,13 +812,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     {
       var initialVC: UIViewController?
       
-      if Gateway.instance.studies?.isEmpty == false {
-        guard
-          let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
-            .first
-        else { return }
-        Study.updateCurrentStudy(study: study)
-      }
+//      if Gateway.instance.studies?.isEmpty == false {
+//        guard let study = Gateway.instance.studies?.filter({ $0.studyId == studyId }).first else { return }
+//        Study.updateCurrentStudy(study: study)
+//      }
       // fetch the visible view controller
       let navigationController = self.window?.rootViewController as? UINavigationController
       let menuVC = navigationController?.viewControllers.last
@@ -868,14 +844,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         } else {
           // switch to activity tab
           (initialVC as? UITabBarController)?.selectedIndex =
-          subType == .resource ? 0 : 2
+          subType == .activity ? 0 : 2
         }
         
       case .resource:
         if !(initialVC is UITabBarController) {
-          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+//          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
 
-          // push tabbar and switch to activty tab
+          // push tabbar and switch to resource tab
           if let initialVC = initialVC {
             self.pushToTabbar(
               viewController: initialVC,
@@ -885,14 +861,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         }
         
       case .study, .studyEvent:  // Study Notifications
-        
+//        notificationDetails = userInfoDetails
         let leftController =
-        (menuVC as? FDASlideMenuViewController)?.leftViewController
-        as? LeftMenuViewController
+                  (menuVC as? FDASlideMenuViewController)?.leftViewController
+                  as? LeftMenuViewController
         
-        if !(initialVC is StudyListViewController) {
+        if (initialVC is StudyListViewController) {
+          (initialVC as? StudyListViewController)!.addRightNavigationItem()
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-          
+        } else if !(initialVC is StudyListViewController) {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
@@ -931,9 +908,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           (initialVC as? UITabBarController)?.selectedIndex =
           subType == .announcement ? 0 : 2
         }
-        
-      default:
-        break
       }
     }
   }
@@ -2077,13 +2051,12 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     
     print("UserInfo11 :: \(userInfo)")
 
-//    if UIApplication.shared.applicationState == UIApplication.State.background
-//      || UIApplication.shared.applicationState == UIApplication.State.active
-//    {
-      print("UserInfo :: \(userInfo)")
+    if UIApplication.shared.applicationState == UIApplication.State.background
+      || UIApplication.shared.applicationState == UIApplication.State.active
+    {
 
-//      self.handleLocalAndRemoteNotification(userInfoDetails: (userInfo as? JSONDictionary ?? [:]))
-//    }
+      self.handleLocalAndRemoteNotification(userInfoDetails: (userInfo as? JSONDictionary ?? [:]))
+    }
 
     // UserInfo is valid & contains Type for Notification
     if userInfo.count > 0 && userInfo.keys.contains(kType) {

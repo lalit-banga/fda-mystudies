@@ -533,7 +533,7 @@ class StudyListViewController: UIViewController {
   /// Get the `Study` overview from DB if available and navigate.
   /// - Parameter study: Instance of `Study`.
   func checkDatabaseForStudyInfo(study: Study) {
-    DBHandler.loadStudyOverview(studyId: (study.studyId)!) { overview in
+    DBHandler.loadStudyOverview(studyId: (study.studyId)) { overview in
       if overview != nil {
         study.overview = overview
         self.navigateToStudyHome()
@@ -569,7 +569,7 @@ class StudyListViewController: UIViewController {
     if (Gateway.instance.studies?.count)! > 0 {
       loadStudiesFromDatabase()
 //      let appDelegate = (UIApplication.shared.delegate as? AppDelegate)!
-
+//
 //      if appDelegate.notificationDetails != nil, User.currentUser.userType == .loggedInUser {
 //        appDelegate.handleLocalAndRemoteNotification(
 //          userInfoDetails: appDelegate.notificationDetails!
@@ -625,7 +625,10 @@ class StudyListViewController: UIViewController {
 
         if userStudyStatus == .completed || userStudyStatus == .enrolled {
           pushToStudyDashboard()
-        } else {
+        } else if userStudyStatus == .yetToEnroll {
+          checkDatabaseForStudyInfo(study: currentStudy)
+        }
+        else {
           checkDatabaseForStudyInfo(study: currentStudy)
         }
       } else {
@@ -644,7 +647,9 @@ class StudyListViewController: UIViewController {
       Study.updateCurrentStudy(study: study)
     }
     
-    guard let study = Study.currentStudy else { return }
+    guard let study = Study.currentStudy else {
+      return
+    }
     print("User Status : ", User.currentUser.userType as Any)
     print("User Study Status : ", study.status as Any)
     print("User Participate Status : ", study.userParticipateState.status as Any)
@@ -672,14 +677,16 @@ class StudyListViewController: UIViewController {
         let userStudyStatus = study.userParticipateState.status
 
         if userStudyStatus == .completed || userStudyStatus == .enrolled {
-          UIUtilities.showAlertWithTitleAndMessage(
-            title: "",
-            message: NSLocalizedString(
-              kMessageForStudyPausedAfterJoiningState,
-              comment: ""
-            )
+          if (studyID == nil) {
+            UIUtilities.showAlertWithTitleAndMessage(
+              title: "",
+              message: NSLocalizedString(
+                kMessageForStudyPausedAfterJoiningState,
+                comment: ""
+              )
               as NSString
-          )
+            )
+          }
         } else {
           checkForStudyUpdate(study: study)
         }
@@ -687,13 +694,6 @@ class StudyListViewController: UIViewController {
         checkForStudyUpdate(study: study)
       }
     }
-//      else if Study.currentStudy?.status == .active {
-//        let userStudyStatus = study.userParticipateState.status
-//        
-//        if userStudyStatus == .yetToEnroll {
-//          checkDatabaseForStudyInfo(study: study)
-//        }
-//      }
     else {
       checkForStudyUpdate(study: study)
     }
