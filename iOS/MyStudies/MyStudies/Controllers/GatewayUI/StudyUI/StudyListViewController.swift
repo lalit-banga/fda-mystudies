@@ -650,11 +650,33 @@ class StudyListViewController: UIViewController {
     guard let study = Study.currentStudy else {
       return
     }
+    
     print("User Status : ", User.currentUser.userType as Any)
     print("User Study Status : ", study.status as Any)
     print("User Participate Status : ", study.userParticipateState.status as Any)
+    
     if User.currentUser.userType == UserType.loggedInUser {
-      if study.status == .active {
+
+       if Study.currentStudy?.status == .paused {
+        let userStudyStatus = study.userParticipateState.status
+
+        if userStudyStatus == .completed || userStudyStatus == .enrolled {
+          if (studyID == nil) {
+            UIUtilities.showAlertWithTitleAndMessage(
+              title: "",
+              message: NSLocalizedString(
+                kMessageForStudyPausedAfterJoiningState,
+                comment: ""
+              )
+              as NSString
+            )
+          }
+        } else {
+          checkForStudyUpdate(study: study)
+        }
+      }
+      
+     else if study.status == .active {
         let userStudyStatus = study.userParticipateState.status
 
         if userStudyStatus == .completed || userStudyStatus == .enrolled {
@@ -672,26 +694,6 @@ class StudyListViewController: UIViewController {
         else {
           checkForStudyUpdate(study: study)
         }
-      }
-      else if Study.currentStudy?.status == .paused {
-        let userStudyStatus = study.userParticipateState.status
-
-        if userStudyStatus == .completed || userStudyStatus == .enrolled {
-          if (studyID == nil) {
-            UIUtilities.showAlertWithTitleAndMessage(
-              title: "",
-              message: NSLocalizedString(
-                kMessageForStudyPausedAfterJoiningState,
-                comment: ""
-              )
-              as NSString
-            )
-          }
-        } else {
-          checkForStudyUpdate(study: study)
-        }
-      } else {
-        checkForStudyUpdate(study: study)
       }
     }
     else {

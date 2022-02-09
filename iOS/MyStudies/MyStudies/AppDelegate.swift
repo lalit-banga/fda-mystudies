@@ -724,6 +724,42 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       }
       // Handling Notifications based on SubType
       switch subType {
+        
+      case .study, .studyEvent:  // Study Notifications
+        //        notificationDetails = userInfoDetails
+        let leftController =
+        (menuVC as? FDASlideMenuViewController)?.leftViewController
+        as? LeftMenuViewController
+        
+        if (initialVC is StudyListViewController) {
+          (initialVC as? StudyListViewController)!.addRightNavigationItem()
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+        } else {
+          if initialVC is ProfileViewController
+              || initialVC
+              is ReachoutOptionsViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is NotificationViewController
+          {
+            (initialVC as? StudyListViewController)!.addRightNavigationItem()
+            (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+//            NotificationHandler.instance.appOpenFromNotification = true
+//            NotificationHandler.instance.studyId = studyId
+//
+//            leftController?.changeViewController(.studyList)
+//            leftController?.createLeftmenuItems()
+            
+          }
+        }
+//        else {
+//
+//          NotificationHandler.instance.appOpenFromNotification = true
+//          NotificationHandler.instance.studyId = studyId
+//
+//          leftController?.changeViewController(.studyList)
+//          leftController?.createLeftmenuItems()
+//        }
+        
       case .activity:  // Activity & Resource  Notifications
         
         if !(initialVC is UITabBarController) {
@@ -743,7 +779,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         
       case .resource:
         if !(initialVC is UITabBarController) {
-//          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
 
           // push tabbar and switch to resource tab
           if let initialVC = initialVC {
@@ -752,38 +788,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
               selectedTab: 2
             )
           }
-        } 
-        
-      case .study, .studyEvent:  // Study Notifications
-        //        notificationDetails = userInfoDetails
-        let leftController =
-        (menuVC as? FDASlideMenuViewController)?.leftViewController
-        as? LeftMenuViewController
-        
-        if (initialVC is StudyListViewController) {
-          (initialVC as? StudyListViewController)!.addRightNavigationItem()
-          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-        } else if !(initialVC is StudyListViewController) {
-          if initialVC is ProfileViewController
-              || initialVC
-              is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController
-          {
-            
-            NotificationHandler.instance.appOpenFromNotification = true
-            NotificationHandler.instance.studyId = studyId
-            
-            leftController?.changeViewController(.studyList)
-            leftController?.createLeftmenuItems()
-            
-          }
-        } else {
-          
-          NotificationHandler.instance.appOpenFromNotification = true
-          NotificationHandler.instance.studyId = studyId
-          
-          leftController?.changeViewController(.studyList)
-          leftController?.createLeftmenuItems()
+        }
+        else {
+          (initialVC as? UITabBarController)?.selectedIndex = 2
         }
         
       case .announcement:
@@ -829,36 +836,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       }
       // Handling Notifications based on SubType
       switch subType {
-      case .activity:  // Activity & Resource  Notifications
-        
-        if !(initialVC is UITabBarController) {
-          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
-          // push tabbar and switch to activty tab
-          if let initialVC = initialVC {
-            self.pushToTabbar(
-              viewController: initialVC,
-              selectedTab: subType == .activity ? 0 : 2
-            )
-          }
-        } else {
-          // switch to activity tab
-          (initialVC as? UITabBarController)?.selectedIndex =
-          subType == .activity ? 0 : 2
-        }
-        
-      case .resource:
-        if !(initialVC is UITabBarController) {
-//          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
-          // push tabbar and switch to resource tab
-          if let initialVC = initialVC {
-            self.pushToTabbar(
-              viewController: initialVC,
-              selectedTab: 2
-            )
-          }
-        }
         
       case .study, .studyEvent:  // Study Notifications
 //        notificationDetails = userInfoDetails
@@ -891,6 +868,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           leftController?.changeViewController(.studyList)
           leftController?.createLeftmenuItems()
         }
+        
+      case .activity:  // Activity & Resource  Notifications
+        
+        if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+          // push tabbar and switch to activty tab
+          if let initialVC = initialVC {
+            self.pushToTabbar(
+              viewController: initialVC,
+              selectedTab: subType == .activity ? 0 : 2
+            )
+          }
+        } else {
+          // switch to activity tab
+          (initialVC as? UITabBarController)?.selectedIndex =
+          subType == .activity ? 0 : 2
+        }
+        
+      case .resource:
+        if !(initialVC is UITabBarController) {
+          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+
+          // push tabbar and switch to resource tab
+            if let initialVC = initialVC {
+              self.pushToTabbar(
+                viewController: initialVC,
+                selectedTab: subType == .resource ? 0 : 2
+              )
+            }
+          }
+//        else {
+//            // switch to activity tab
+//            (initialVC as? UITabBarController)?.selectedIndex = subType == .resource ? 0 : 2
+//          }
         
       case .announcement:
         if !(initialVC is UITabBarController) {
