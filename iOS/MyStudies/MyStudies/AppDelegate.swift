@@ -780,6 +780,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       case .resource:
         if !(initialVC is UITabBarController) {
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+          
+          print("StudyId :: \(studyId)")
 
           // push tabbar and switch to resource tab
           if let initialVC = initialVC {

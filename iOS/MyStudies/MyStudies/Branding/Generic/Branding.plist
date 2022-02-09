@@ -10,6 +10,8 @@
 	<string>Tritera</string>
 	<key>IsStandaloneStudyApp</key>
 	<false/>
+	<key>New item</key>
+	<string></string>
 	<key>JoinStudyButtonTitle</key>
 	<string>Participate</string>
 	<key>ViewConsentButtonTitle</key>
