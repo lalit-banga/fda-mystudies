@@ -669,6 +669,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
   /// Handler for local & remote notification
   /// - Parameter userInfoDetails: contains the info for notification
   func handleLocalAndRemoteNotification(userInfoDetails: JSONDictionary?) {
+    
+    var initialVC: UIViewController?
+
     // User info is valid
     print("UserDetails :: \(userInfoDetails)")
 //    if let userInfoDetails = userInfoDetails,
@@ -676,6 +679,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
 //    {
 //      self.notificationDetails = nil
 //    }
+    if let dashboardTabBar = initialVC as? UITabBarController {
+      dashboardTabBar.selectedIndex = 2 // Go to resources screen.
+      if let resourcesVC = (dashboardTabBar.viewControllers?.first as? UINavigationController)?.topViewController as? ResourcesViewController
+      {
+        resourcesVC.userDidNavigateFromNotification()
+      }
+    }
     
     if let studyId = userInfoDetails?[kStudyId] as? String,
        !studyId.isEmpty
@@ -726,39 +736,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       switch subType {
         
       case .study, .studyEvent:  // Study Notifications
-        //        notificationDetails = userInfoDetails
+        
         let leftController =
-        (menuVC as? FDASlideMenuViewController)?.leftViewController
-        as? LeftMenuViewController
+                  (menuVC as? FDASlideMenuViewController)?.leftViewController
+                  as? LeftMenuViewController
         
         if (initialVC is StudyListViewController) {
           (initialVC as? StudyListViewController)!.addRightNavigationItem()
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-        } else {
+        } else if !(initialVC is StudyListViewController) {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is NotificationViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController
           {
-            (initialVC as? StudyListViewController)!.addRightNavigationItem()
-            (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
-//            NotificationHandler.instance.appOpenFromNotification = true
-//            NotificationHandler.instance.studyId = studyId
-//
-//            leftController?.changeViewController(.studyList)
-//            leftController?.createLeftmenuItems()
             
+            NotificationHandler.instance.appOpenFromNotification = true
+            NotificationHandler.instance.studyId = studyId
+            
+            leftController?.changeViewController(.studyList)
+            leftController?.createLeftmenuItems()
+
           }
+        } else {
+          
+          NotificationHandler.instance.appOpenFromNotification = true
+          NotificationHandler.instance.studyId = studyId
+          
+          leftController?.changeViewController(.studyList)
+          leftController?.createLeftmenuItems()
+
         }
-//        else {
 //
-//          NotificationHandler.instance.appOpenFromNotification = true
-//          NotificationHandler.instance.studyId = studyId
-//
-//          leftController?.changeViewController(.studyList)
-//          leftController?.createLeftmenuItems()
-//        }
         
       case .activity:  // Activity & Resource  Notifications
         
@@ -779,10 +788,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         
       case .resource:
         if !(initialVC is UITabBarController) {
-          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+//          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
           
           print("StudyId :: \(studyId)")
-
+          
+          if Gateway.instance.studies?.isEmpty == false {
+            guard let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
+                .first
+            else { return }
+            Study.updateCurrentStudy(study: study)
+          }
+          
           // push tabbar and switch to resource tab
           if let initialVC = initialVC {
             self.pushToTabbar(
@@ -840,7 +856,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       switch subType {
         
       case .study, .studyEvent:  // Study Notifications
-//        notificationDetails = userInfoDetails
         let leftController =
                   (menuVC as? FDASlideMenuViewController)?.leftViewController
                   as? LeftMenuViewController
@@ -852,7 +867,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController
           {
             
             NotificationHandler.instance.appOpenFromNotification = true
@@ -860,7 +875,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             
             leftController?.changeViewController(.studyList)
             leftController?.createLeftmenuItems()
-            
+
           }
         } else {
           
@@ -875,6 +890,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         
         if !(initialVC is UITabBarController) {
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
+//
+//          if let initialVC = initialVC {
+//            (initialVC as? UITabBarController)?.selectedIndex = 2
+//          }
 
           // push tabbar and switch to activty tab
           if let initialVC = initialVC {
@@ -891,20 +910,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         
       case .resource:
         if !(initialVC is UITabBarController) {
-          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
-          // push tabbar and switch to resource tab
-            if let initialVC = initialVC {
-              self.pushToTabbar(
-                viewController: initialVC,
-                selectedTab: subType == .resource ? 0 : 2
-              )
-            }
+          
+          print("StudyId :: \(studyId)")
+          
+          if Gateway.instance.studies?.isEmpty == false {
+            guard let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
+                .first
+            else { return }
+            Study.updateCurrentStudy(study: study)
           }
-//        else {
-//            // switch to activity tab
-//            (initialVC as? UITabBarController)?.selectedIndex = subType == .resource ? 0 : 2
-//          }
+          
+          // push tabbar and switch to resource tab
+          if let initialVC = initialVC {
+            self.pushToTabbar(
+              viewController: initialVC,
+              selectedTab: 2
+            )
+          }
+        }
+        else {
+          (initialVC as? UITabBarController)?.selectedIndex = 2
+        }
         
       case .announcement:
         if !(initialVC is UITabBarController) {
@@ -941,20 +967,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
   /// - Parameters:
   ///   - viewController: Instance of `UIViewController`
   ///   - selectedTab: Selected tab in form of `Int`
-  func pushToTabbar(viewController: UIViewController, selectedTab: Int) {
-
-    let studyStoryBoard = UIStoryboard.init(name: kStudyStoryboard, bundle: Bundle.main)
-
-    let studyDashboard =
-      (studyStoryBoard.instantiateViewController(
-        withIdentifier: kStudyDashboardTabbarControllerIdentifier
-      )
-      as? StudyDashboardTabbarViewController)!
-
-    studyDashboard.selectedIndex = selectedTab
-    viewController.navigationController?.navigationBar.isHidden = true
-    viewController.navigationController?.pushViewController(studyDashboard, animated: true)
-  }
+  func pushToTabbar(viewController: UIViewController, selectedTab: Int, studyID: String? = nil) {
+      DispatchQueue.main.async {
+        let studyStoryBoard = UIStoryboard.init(name: kStudyStoryboard, bundle: Bundle.main)
+        
+        let studyDashboard =
+        (studyStoryBoard.instantiateViewController(
+          withIdentifier: kStudyDashboardTabbarControllerIdentifier
+        )
+         as? StudyDashboardTabbarViewController)!
+        
+        studyDashboard.selectedIndex = selectedTab
+        print("SelectedTab11 :: \(selectedTab)")
+        viewController.navigationController?.navigationBar.isHidden = true
+        viewController.navigationController?.pushViewController(studyDashboard, animated: true)
+      }
+    }
 
   /// Verifies passcode if enabled or set passcode
   /// - Parameter viewController: Instance of `UIViewController`

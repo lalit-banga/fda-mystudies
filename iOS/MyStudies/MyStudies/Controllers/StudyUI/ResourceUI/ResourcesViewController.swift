@@ -112,17 +112,13 @@ class ResourcesViewController: UIViewController {
     self.navigationController?.setNavigationBarHidden(false, animated: true)
 
     self.tabBarController?.tabBar.isHidden = false
-    
-    guard let study = Study.currentStudy else {
-      return
-    }
-    
+        
     if Study.currentStudy?.withdrawalConfigration?.message == nil
       && (Study.currentStudy?.withdrawalConfigration?.type == nil
         || Study.currentStudy?
           .withdrawalConfigration?.type == .notAvailable)
     {
-      print("Study Id: \(study.studyId)")
+      print("Study Id(Res): \(Study.currentStudy?.studyId)")
       WCPServices().getStudyInformation(
         studyId: (Study.currentStudy?.studyId)!,
         delegate: self
