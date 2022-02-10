@@ -736,7 +736,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       switch subType {
         
       case .study, .studyEvent:  // Study Notifications
-        
         let leftController =
                   (menuVC as? FDASlideMenuViewController)?.leftViewController
                   as? LeftMenuViewController
@@ -748,7 +747,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController || initialVC is NotificationViewController
           {
             
             NotificationHandler.instance.appOpenFromNotification = true
@@ -756,18 +755,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             
             leftController?.changeViewController(.studyList)
             leftController?.createLeftmenuItems()
-
-          }
+            
+           }
         } else {
           
           NotificationHandler.instance.appOpenFromNotification = true
           NotificationHandler.instance.studyId = studyId
+    
           
           leftController?.changeViewController(.studyList)
           leftController?.createLeftmenuItems()
-
         }
-//
         
       case .activity:  // Activity & Resource  Notifications
         
@@ -867,7 +865,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController || initialVC is NotificationViewController
           {
             
             NotificationHandler.instance.appOpenFromNotification = true
