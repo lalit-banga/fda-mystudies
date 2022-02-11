@@ -118,7 +118,6 @@ class ResourcesViewController: UIViewController {
         || Study.currentStudy?
           .withdrawalConfigration?.type == .notAvailable)
     {
-      print("Study Id(Res): \(Study.currentStudy?.studyId)")
       WCPServices().getStudyInformation(
         studyId: (Study.currentStudy?.studyId)!,
         delegate: self
@@ -186,7 +185,6 @@ class ResourcesViewController: UIViewController {
     let activityId = NotificationHandler.instance.studyId
     let rowDetail = tableViewSections[0]
     let activities = rowDetail["activities"] as? [Activity] ?? []
-    let resources = rowDetail["resources"] as? [Resource] ?? []
     if let index = activities.firstIndex(where: { $0.studyId == activityId }),
       let tableView = self.tableView
     {

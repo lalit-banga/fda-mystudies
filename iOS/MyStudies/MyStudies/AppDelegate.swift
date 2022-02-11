@@ -300,7 +300,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     self.checkPasscode(viewController: (application.windows[0].rootViewController)!)
     self.checkForStudyUpdates()
     let number = UIApplication.shared.applicationIconBadgeNumber
-    print(number)
     if number >= 1 {
       self.updateNotification(userInfoDetails: nil)
     }
@@ -672,13 +671,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     
     var initialVC: UIViewController?
 
-    // User info is valid
-    print("UserDetails :: \(userInfoDetails)")
-//    if let userInfoDetails = userInfoDetails,
-//       !userInfoDetails.isEmpty
-//    {
-//      self.notificationDetails = nil
-//    }
     if let dashboardTabBar = initialVC as? UITabBarController {
       dashboardTabBar.selectedIndex = 2 // Go to resources screen.
       if let resourcesVC = (dashboardTabBar.viewControllers?.first as? UINavigationController)?.topViewController as? ResourcesViewController
@@ -693,7 +685,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
       let notificationType = userInfoDetails![kNotificationType] as? String ?? ""
       
       let subType = AppNotification.NotificationSubType(rawValue: (userInfoDetails![kNotificationSubType] as? String ?? "")) ?? .announcement
-      print(AppNotification.NotificationType(rawValue: notificationType)!)
       
       switch AppNotification.NotificationType(rawValue: notificationType) {
       case .gateway:
@@ -703,9 +694,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         handleStudyNotificationType(userInfoDetails: userInfoDetails!, subType: subType)
       default:
         print(notificationType)
-      
+        
       }
-      }
+    }
   }
   
   private func handleStudyNotificationType(userInfoDetails: [String: Any], subType: AppNotification.NotificationSubType) {
@@ -714,13 +705,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     {
       var initialVC: UIViewController?
       
-//      if Gateway.instance.studies?.isEmpty == false {
-//        guard
-//          let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
-//            .first
-//        else { return }
-//        Study.updateCurrentStudy(study: study)
-//      }
       // fetch the visible view controller
       let navigationController = self.window?.rootViewController as? UINavigationController
       let menuVC = navigationController?.viewControllers.last
@@ -747,7 +731,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController || initialVC is NotificationViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController || initialVC is NotificationViewController || initialVC is LeftMenuViewController
           {
             
             NotificationHandler.instance.appOpenFromNotification = true
@@ -767,7 +751,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           leftController?.createLeftmenuItems()
         }
         
-      case .activity:  // Activity & Resource  Notifications
+      case .activity:  // Activity Notifications
         
         if !(initialVC is UITabBarController) {
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
@@ -780,15 +764,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             )
           }
         } else {
+          // switch to activity tab
           (initialVC as? UITabBarController)?.selectedIndex =
           subType == .activity ? 0 : 2
         }
         
       case .resource:
         if !(initialVC is UITabBarController) {
-//          (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-          
-          print("StudyId :: \(studyId)")
           
           if Gateway.instance.studies?.isEmpty == false {
             guard let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
@@ -835,10 +817,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     {
       var initialVC: UIViewController?
       
-//      if Gateway.instance.studies?.isEmpty == false {
-//        guard let study = Gateway.instance.studies?.filter({ $0.studyId == studyId }).first else { return }
-//        Study.updateCurrentStudy(study: study)
-//      }
       // fetch the visible view controller
       let navigationController = self.window?.rootViewController as? UINavigationController
       let menuVC = navigationController?.viewControllers.last
@@ -865,7 +843,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           if initialVC is ProfileViewController
               || initialVC
               is ReachoutOptionsViewController
-              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController || initialVC is NotificationViewController
+              || initialVC is GatewayResourcesListViewController || initialVC is ActivitiesViewController || initialVC is ResourcesViewController || initialVC is StudyDashboardViewController || initialVC is StudyDashboardTabbarViewController || initialVC is NotificationViewController || initialVC is LeftMenuViewController
           {
             
             NotificationHandler.instance.appOpenFromNotification = true
@@ -884,15 +862,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
           leftController?.createLeftmenuItems()
         }
         
-      case .activity:  // Activity & Resource  Notifications
+      case .activity:  // Activity Notifications
         
         if !(initialVC is UITabBarController) {
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-//
-//          if let initialVC = initialVC {
-//            (initialVC as? UITabBarController)?.selectedIndex = 2
-//          }
-
+        
           // push tabbar and switch to activty tab
           if let initialVC = initialVC {
             self.pushToTabbar(
@@ -901,19 +875,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             )
           }
         } else {
-          // switch to activity tab
           (initialVC as? UITabBarController)?.selectedIndex =
           subType == .activity ? 0 : 2
         }
         
-      case .resource:
+      case .resource:  // Resource Notifications
         if !(initialVC is UITabBarController) {
-          
-          print("StudyId :: \(studyId)")
           
           if Gateway.instance.studies?.isEmpty == false {
             guard let study = Gateway.instance.studies?.filter({ $0.studyId == studyId })
-                .first
+                    .first
             else { return }
             Study.updateCurrentStudy(study: study)
           }
@@ -925,15 +896,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
               selectedTab: 2
             )
           }
-        }
-        else {
+        } else {
           (initialVC as? UITabBarController)?.selectedIndex = 2
         }
         
       case .announcement:
         if !(initialVC is UITabBarController) {
           (initialVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
+          
           // push tabbar and switch to activty tab
           if let initialVC = initialVC {
             self.pushToTabbar(
@@ -942,7 +912,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             )
           }
         } else {
-          // switch to activity tab
           (initialVC as? UITabBarController)?.selectedIndex =
           subType == .announcement ? 0 : 2
         }
@@ -976,7 +945,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
          as? StudyDashboardTabbarViewController)!
         
         studyDashboard.selectedIndex = selectedTab
-        print("SelectedTab11 :: \(selectedTab)")
         viewController.navigationController?.navigationBar.isHidden = true
         viewController.navigationController?.pushViewController(studyDashboard, animated: true)
       }
@@ -1202,7 +1170,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
             let notificationType = userInfoDetails![kNotificationType] as? String ?? ""
             
             let subType = AppNotification.NotificationSubType(rawValue: (userInfoDetails![kNotificationSubType] as? String ?? "")) ?? .announcement
-            print(AppNotification.NotificationType(rawValue: notificationType)!)
             
             switch AppNotification.NotificationType(rawValue: notificationType) {
             case .gateway:
@@ -1212,14 +1179,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
               handleStudyNotificationType(userInfoDetails: userInfoDetails!, subType: subType)
             default:
               print(notificationType)
-            
-            }
-//            (studyListVC as? StudyListViewController)!.performTaskBasedOnStudyStatus(studyID: studyId)
-
+              
             }
           }
         }
       }
+    }
   }
 
   private func refreshStudyActivitiesState(with userInfo: JSONDictionary) {
@@ -2088,8 +2053,6 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
 
     let userInfo = response.notification.request.content.userInfo
     UIApplication.shared.applicationIconBadgeNumber = 0
-    
-    print("UserInfo11 :: \(userInfo)")
 
     if UIApplication.shared.applicationState == UIApplication.State.background
       || UIApplication.shared.applicationState == UIApplication.State.active
@@ -2101,10 +2064,6 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     // UserInfo is valid & contains Type for Notification
     if userInfo.count > 0 && userInfo.keys.contains(kType) {
       self.handleLocalAndRemoteNotification(userInfoDetails: (userInfo as? JSONDictionary ?? [:]))
-//      print("UserInfoUN :: \(userInfo)")
-//      self.updateNotification(userInfoDetails:  userInfo as? JSONDictionary)
-//    } else {
-//      self.handleLocalNotification(userInfoDetails: userInfo as? JSONDictionary ?? [:])
     }
     completionHandler()
   }

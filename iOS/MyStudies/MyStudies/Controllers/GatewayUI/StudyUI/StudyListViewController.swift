@@ -651,10 +651,6 @@ class StudyListViewController: UIViewController {
       return
     }
     
-    print("User Status : ", User.currentUser.userType as Any)
-    print("User Study Status : ", study.status as Any)
-    print("User Participate Status : ", study.userParticipateState.status as Any)
-    
     if User.currentUser.userType == UserType.loggedInUser {
 
        if Study.currentStudy?.status == .paused {
@@ -674,9 +670,7 @@ class StudyListViewController: UIViewController {
         } else {
           checkForStudyUpdate(study: study)
         }
-      }
-      
-     else if study.status == .active {
+      } else if study.status == .active {
         let userStudyStatus = study.userParticipateState.status
 
         if userStudyStatus == .completed || userStudyStatus == .enrolled {
@@ -687,16 +681,13 @@ class StudyListViewController: UIViewController {
             addProgressIndicator()
             perform(#selector(loadStudyDetails), with: self, afterDelay: 1)
           }
-        }
-        else if userStudyStatus == .yetToEnroll {
+        } else if userStudyStatus == .yetToEnroll {
           checkDatabaseForStudyInfo(study: study)
-        }
-        else {
+        } else {
           checkForStudyUpdate(study: study)
         }
       }
-    }
-    else {
+    } else {
       checkForStudyUpdate(study: study)
     }
   }
