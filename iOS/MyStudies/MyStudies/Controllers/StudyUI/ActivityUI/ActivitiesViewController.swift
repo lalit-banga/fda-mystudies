@@ -115,6 +115,9 @@ class ActivitiesViewController: UIViewController {
     tableView?.addSubview(refreshControl!)
 
     setupStandaloneNotifications()
+    
+    UserDefaults.standard.removeObject(forKey: "isAlertShown")
+    UserDefaults.standard.synchronize()
   }
 
   override func viewWillAppear(_ animated: Bool) {
@@ -1511,12 +1514,7 @@ extension ActivitiesViewController: ORKTaskViewControllerDelegate {
           && activityId != nil
           && activityId == Study.currentActivity?.actvityId
           && (stepViewController is ORKInstructionStepViewController)
-        {
-
-          DispatchQueue.main.asyncAfter(deadline: .now()) {
-            stepViewController.goForward()
-          }
-        }
+        {}
 
         // Disable back button
         if stepViewController is FetalKickCounterStepViewController {

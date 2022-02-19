@@ -183,7 +183,19 @@ class FetalKickCounterStepViewController: ORKStepViewController {
       self.view.addGestureRecognizer(gestureRecognizer)
     }
   }
-
+  
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    
+    counterTextField?.text = "00" + "\(self.kickCounter!)"
+    
+    let isAlertShown = UserDefaults.standard.bool(forKey: "isAlertShown")
+    if Int((counterTextField?.text)!) == self.maxKicksAllowed! && !isAlertShown {
+      UserDefaults.standard.setValue(true, forKey: "isAlertShown")
+      self.showAlertOnCompletion()
+    }
+  }
+  
   override func hasNextStep() -> Bool {
     super.hasNextStep()
     return true
@@ -228,6 +240,7 @@ class FetalKickCounterStepViewController: ORKStepViewController {
 
           if self.timerValue! > self.totalTime! {
             self.setResults()
+            UserDefaults.standard.setValue(false, forKey: "isAlertShown")
             self.showAlertOnCompletion()
 
           } else {
@@ -279,7 +292,7 @@ class FetalKickCounterStepViewController: ORKStepViewController {
 
       ud.synchronize()
     }
-
+    
   }
 
   /// Resets the keys when app becomes Active.
@@ -296,12 +309,16 @@ class FetalKickCounterStepViewController: ORKStepViewController {
     let message =
       kGreaterValueMessage + "\(self.maxKicksAllowed!) kicks, " + "please enter "
       + "\(self.maxKicksAllowed!) kicks only"
-
-    Utilities.showAlertWithTitleAndMessage(
+    
+    UserDefaults.standard.setValue(true, forKey: "isGreaterAlertShown")
+    
+    Utilities.showAlertWithTitleAndMessageAction(
       title: kMessage,
       message: message,
-      on: self
-    )
+      on: self,
+      cancelAction: {
+        UserDefaults.standard.setValue(true, forKey: "isGreaterAlertDismissed")
+      })
   }
 
   /// Updates results for the Task.
@@ -374,6 +391,8 @@ class FetalKickCounterStepViewController: ORKStepViewController {
       viewControllerUsed: self,
       action1: {},
       action2: {
+        UserDefaults.standard.removeObject(forKey: "isAlertShown")
+        UserDefaults.standard.synchronize()
         self.goForward()
       }
     )
@@ -435,11 +454,13 @@ class FetalKickCounterStepViewController: ORKStepViewController {
 
         if self.kickCounter == self.maxKicksAllowed! {
           self.setResults()
+          UserDefaults.standard.setValue(true, forKey: "isAlertShown")
           self.showAlertOnCompletion()
         }
 
       } else if self.kickCounter! == self.maxKicksAllowed! {
         self.setResults()
+        UserDefaults.standard.setValue(true, forKey: "isAlertShown")
         self.showAlertOnCompletion()
 
       } else if self.kickCounter! > self.maxKicksAllowed! {
@@ -496,10 +517,10 @@ class FetalKickCounterStepViewController: ORKStepViewController {
             (hours < 10 ? "0\(hours):" : "\(hours):") + (minutes < 10 ? "0\(minutes):" : "\(minutes):")
             + (seconds < 10 ? "0\(seconds)" : "\(seconds)")
 
-          Utilities.showAlertWithTitleAndMessage(
+          Utilities.showAlertWithTitleAndMessageAction(
             title: kMessage,
             message: "Please select a valid time(Max " + value + ")",
-            on: self
+            on: self, cancelAction: {}
           )
 
         } else {
@@ -610,6 +631,7 @@ extension FetalKickCounterStepViewController: UITextFieldDelegate {
 
       if self.kickCounter == self.maxKicksAllowed! {
         self.setResults()
+        UserDefaults.standard.setValue(true, forKey: "isAlertShown")
         self.showAlertOnCompletion()
       }
 
@@ -632,7 +654,15 @@ extension FetalKickCounterStepViewController: UITextFieldDelegate {
         return true
 
       } else {
-
+        if Int(finalString)! >= self.maxKicksAllowed! {
+          let finalValue = (Int((counterTextField?.text)!))
+          self.editCounterButton?.isUserInteractionEnabled = true
+          counterTextField?.isHidden = false
+          seperatorLineView?.isHidden = false
+          counterTextField?.becomeFirstResponder()
+          counterTextField?.text = "\(finalValue ?? 0)"
+        }
+        
         self.showAlertForGreaterValues()
         return false
       }
