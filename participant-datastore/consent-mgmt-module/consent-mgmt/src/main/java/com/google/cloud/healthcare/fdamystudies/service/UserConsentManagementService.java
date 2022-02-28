@@ -34,4 +34,7 @@ public interface UserConsentManagementService {
   public StudyEntity getStudyInfo(String customStudyId);
 
   public String getUserDetailsId(String userId);
+
+  public ConsentStudyResponseBean getStudyConsentDetailsFromConsentStore(
+      String userId, String studyId, String consentVersion, AuditLogEventRequest auditRequest);
 }

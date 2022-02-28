@@ -249,9 +249,13 @@ public class UserConsentManagementController {
       auditRequest.setStudyId(studyInfo.getCustomId());
       auditRequest.setStudyVersion(String.valueOf(studyInfo.getVersion()));
 
+      String flag = appConfig.getEnableConsentManagementAPI();
       consentStudyResponseBean =
-          userConsentManagementService.getStudyConsentDetails(
-              userId, studyInfo.getId(), consentVersion, auditRequest);
+          !StringUtils.isEmpty(flag) && Boolean.valueOf(flag)
+              ? userConsentManagementService.getStudyConsentDetailsFromConsentStore(
+                  userId, studyInfo.getId(), consentVersion, auditRequest)
+              : userConsentManagementService.getStudyConsentDetails(
+                  userId, studyInfo.getId(), consentVersion, auditRequest);
 
       if (consentStudyResponseBean.getConsent().getContent() != null) {
         consentStudyResponseBean.setMessage(

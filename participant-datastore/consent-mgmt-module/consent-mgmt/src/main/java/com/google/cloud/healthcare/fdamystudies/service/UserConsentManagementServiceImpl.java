@@ -8,19 +8,28 @@
 
 package com.google.cloud.healthcare.fdamystudies.service;
 
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.CONSENT_TYPE;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.DATA_SHARING;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.PDF_PATH;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.PRIMARY;
 import static com.google.cloud.healthcare.fdamystudies.common.ConsentManagementEnum.READ_OPERATION_FAILED_FOR_SIGNED_CONSENT_DOCUMENT;
 import static com.google.cloud.healthcare.fdamystudies.common.ConsentManagementEnum.READ_OPERATION_SUCCEEDED_FOR_SIGNED_CONSENT_DOCUMENT;
 
+import com.google.api.services.healthcare.v1.model.Consent;
+import com.google.api.services.healthcare.v1.model.ConsentArtifact;
 import com.google.cloud.healthcare.fdamystudies.bean.ConsentStudyResponseBean;
 import com.google.cloud.healthcare.fdamystudies.beans.AuditLogEventRequest;
 import com.google.cloud.healthcare.fdamystudies.common.ConsentAuditHelper;
 import com.google.cloud.healthcare.fdamystudies.common.ErrorCode;
+import com.google.cloud.healthcare.fdamystudies.config.ApplicationPropertyConfiguration;
 import com.google.cloud.healthcare.fdamystudies.dao.UserConsentManagementDao;
 import com.google.cloud.healthcare.fdamystudies.exceptions.ErrorCodeException;
+import com.google.cloud.healthcare.fdamystudies.mapper.ConsentManagementAPIs;
 import com.google.cloud.healthcare.fdamystudies.model.ParticipantStudyEntity;
 import com.google.cloud.healthcare.fdamystudies.model.StudyConsentEntity;
 import com.google.cloud.healthcare.fdamystudies.model.StudyEntity;
 import com.google.cloud.storage.StorageException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +46,10 @@ public class UserConsentManagementServiceImpl implements UserConsentManagementSe
   @Autowired FileStorageService cloudStorageService;
 
   @Autowired private ConsentAuditHelper consentAuditHelper;
+
+  @Autowired ApplicationPropertyConfiguration appConfig;
+
+  @Autowired ConsentManagementAPIs consentApis;
 
   private XLogger logger =
       XLoggerFactory.getXLogger(UserConsentManagementServiceImpl.class.getName());
@@ -138,5 +151,76 @@ public class UserConsentManagementServiceImpl implements UserConsentManagementSe
   @Transactional(readOnly = true)
   public String getUserDetailsId(String userId) {
     return userConsentManagementDao.getUserDetailsId(userId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ConsentStudyResponseBean getStudyConsentDetailsFromConsentStore(
+      String userId, String studyId, String consentVersion, AuditLogEventRequest auditRequest) {
+    logger.entry("Begin getStudyConsentDetailsFromConsentStore() ");
+
+    ConsentStudyResponseBean consentStudyResponseBean = new ConsentStudyResponseBean();
+
+    ParticipantStudyEntity participantStudiesEntity =
+        userConsentManagementDao.getParticipantStudies(studyId, userId);
+
+    if (participantStudiesEntity != null && participantStudiesEntity.getParticipantId() != null) {
+      String participantId = participantStudiesEntity.getParticipantId();
+      ConsentArtifact consentArtifact = getStudyConsentFromConsentStore(participantId);
+
+      if (consentArtifact != null && consentArtifact.getConsentContentVersion() != null) {
+        consentStudyResponseBean
+            .getConsent()
+            .setVersion(consentArtifact.getConsentContentVersion());
+
+        consentStudyResponseBean.getConsent().setType("application/pdf");
+        consentStudyResponseBean.setSharing(consentArtifact.getMetadata().get(DATA_SHARING));
+        consentStudyResponseBean
+            .getConsent()
+            .setContent(consentArtifact.getConsentContentScreenshots().get(0).getRawBytes());
+        auditRequest.setParticipantId(participantStudiesEntity.getParticipantId());
+        Map<String, String> map =
+            Collections.singletonMap("file_name", consentArtifact.getMetadata().get(PDF_PATH));
+        consentAuditHelper.logEvent(
+            READ_OPERATION_SUCCEEDED_FOR_SIGNED_CONSENT_DOCUMENT, auditRequest, map);
+      }
+    }
+
+    logger.exit("getStudyConsentDetailsFromConsentStore() - Ends ");
+    return consentStudyResponseBean;
+  }
+
+  /**
+   * Fetches study consent details from consent store
+   *
+   * @param userId
+   * @param studyId
+   * @param consentVersion
+   * @return
+   */
+  private ConsentArtifact getStudyConsentFromConsentStore(String participantId) {
+    logger.entry("Begin getStudyConsentFromConsentStore()");
+
+    String parentName =
+        String.format(
+            "projects/%s/locations/%s/datasets/%s/consentStores/%s",
+            appConfig.getProjectId(),
+            appConfig.getRegionId(),
+            appConfig.getConsentDatasetId(),
+            appConfig.getConsentstoreId());
+
+    ConsentArtifact consentArtifact = null;
+    String filter1 = "user_id=\"" + participantId + "\"";
+    String filter2 = "Metadata(\"" + CONSENT_TYPE + "\")=\"" + PRIMARY + "\"";
+    List<Consent> consents = new ArrayList<>();
+
+    consents = consentApis.getListOfConsents(filter1 + " AND " + filter2, parentName);
+
+    if (consents != null) {
+      consentArtifact = consentApis.getConsentArtifact(consents.get(0).getConsentArtifact());
+    }
+
+    logger.exit("getStudyConsentFromConsentStore() - Ends ");
+    return consentArtifact;
   }
 }
