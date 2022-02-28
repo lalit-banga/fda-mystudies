@@ -58,4 +58,19 @@ public class ApplicationPropertyConfiguration {
 
   @Value("${auth.server.deleteStatusUrl}")
   private String authServerDeleteStatusUrl;
+
+  @Value("${projectId}")
+  private String projectId;
+
+  @Value("${regionId}")
+  private String regionId;
+
+  @Value("${consentDatasetId}")
+  private String consentDatasetId;
+
+  @Value("${consentstoreId}")
+  private String consentstoreId;
+
+  @Value("${enableConsentManagementAPI}")
+  private String enableConsentManagementAPI;
 }
