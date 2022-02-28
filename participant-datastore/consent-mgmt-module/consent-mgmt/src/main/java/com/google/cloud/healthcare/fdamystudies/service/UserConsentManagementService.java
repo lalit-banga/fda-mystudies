@@ -23,7 +23,10 @@ public interface UserConsentManagementService {
 
   public StudyConsentEntity getStudyConsent(String userId, String studyId, String consentVersion);
 
-  public String saveStudyConsent(StudyConsentEntity studyConsent);
+  public String saveStudyConsent(
+      StudyConsentEntity studyConsent,
+      ParticipantStudyEntity participantStudyEntity,
+      String filePath);
 
   public ConsentStudyResponseBean getStudyConsentDetails(
       String userId, String studyId, String consentVersion, AuditLogEventRequest auditRequest);

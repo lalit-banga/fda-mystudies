@@ -8,24 +8,45 @@
 
 package com.google.cloud.healthcare.fdamystudies.dao;
 
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.CONSENT_DATE;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.CONSENT_TYPE;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.DATA_SHARING;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.ENROLLED;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.PARTICIPANT_STUDY_ID;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.PDF_PATH;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.PRIMARY;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.SHARING;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.SITE_ID;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.STUDY_ID;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.VERSION;
+
+import com.google.api.services.healthcare.v1.model.Consent;
 import com.google.cloud.healthcare.fdamystudies.bean.AppOrgInfoBean;
+import com.google.cloud.healthcare.fdamystudies.common.DateTimeUtils;
+import com.google.cloud.healthcare.fdamystudies.config.ApplicationPropertyConfiguration;
+import com.google.cloud.healthcare.fdamystudies.mapper.ConsentManagementAPIs;
 import com.google.cloud.healthcare.fdamystudies.model.AppEntity;
 import com.google.cloud.healthcare.fdamystudies.model.ParticipantStudyEntity;
+import com.google.cloud.healthcare.fdamystudies.model.SiteEntity;
 import com.google.cloud.healthcare.fdamystudies.model.StudyConsentEntity;
 import com.google.cloud.healthcare.fdamystudies.model.StudyEntity;
 import com.google.cloud.healthcare.fdamystudies.model.UserDetailsEntity;
+import com.google.cloud.healthcare.fdamystudies.repository.SiteRepository;
 import com.google.cloud.healthcare.fdamystudies.repository.StudyRepository;
 import com.google.cloud.healthcare.fdamystudies.utils.AppConstants;
 import com.google.cloud.healthcare.fdamystudies.utils.MyStudiesUserRegUtil;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.CriteriaUpdate;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import org.apache.commons.collections4.map.HashedMap;
+import org.apache.cxf.common.util.CollectionUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.ext.XLogger;
@@ -42,6 +63,12 @@ public class UserConsentManagementDaoImpl implements UserConsentManagementDao {
   @Autowired private SessionFactory sessionFactory;
 
   @Autowired StudyRepository studyRepository;
+
+  @Autowired ApplicationPropertyConfiguration appConfig;
+
+  @Autowired ConsentManagementAPIs consentApis;
+
+  @Autowired SiteRepository siteRepository;
 
   @Override
   public ParticipantStudyEntity getParticipantStudies(String studyId, String userId) {
@@ -205,7 +232,10 @@ public class UserConsentManagementDaoImpl implements UserConsentManagementDao {
   }
 
   @Override
-  public String saveStudyConsent(StudyConsentEntity studyConsent) {
+  public String saveStudyConsent(
+      StudyConsentEntity studyConsent,
+      ParticipantStudyEntity participantStudyEntity,
+      String filePath) {
     logger.entry("Begin saveStudyConsent()");
 
     Session session = this.sessionFactory.getCurrentSession();
@@ -215,12 +245,17 @@ public class UserConsentManagementDaoImpl implements UserConsentManagementDao {
 
     if (null != studyConsent) {
       studyConsent.setCreated(Timestamp.from(Instant.now()));
-      isSaved = (String) session.save(studyConsent);
+      String flag = appConfig.getEnableConsentManagementAPI();
+
+      if (!StringUtils.isEmpty(flag) && Boolean.valueOf(flag) && filePath != null) {
+        isSaved = saveConsentDetailsInConsentStore(studyConsent, participantStudyEntity, filePath);
+      } else {
+        isSaved = (String) session.save(studyConsent);
+      }
     }
     if (!StringUtils.isEmpty(isSaved)) {
       addConsentMessage = MyStudiesUserRegUtil.ErrorCodes.SUCCESS.getValue();
     }
-
     logger.exit("saveStudyConsent() - Ends ");
     return addConsentMessage;
   }
@@ -316,5 +351,101 @@ public class UserConsentManagementDaoImpl implements UserConsentManagementDao {
 
     logger.exit("getUserDetailsId() - Ends ");
     return userDetailsId;
+  }
+
+  /**
+   * Saves Consent details in consent store
+   *
+   * @param studyConsent
+   * @return
+   * @throws Exception
+   */
+  private String saveConsentDetailsInConsentStore(
+      StudyConsentEntity studyConsent,
+      ParticipantStudyEntity participantStudyEntity,
+      String filePath) {
+    logger.entry("Begin saveConsentDetailsInConsentStore()");
+
+    String parentName =
+        String.format(
+            "projects/%s/locations/%s/datasets/%s/consentStores/%s",
+            appConfig.getProjectId(),
+            appConfig.getRegionId(),
+            appConfig.getConsentDatasetId(),
+            appConfig.getConsentstoreId());
+
+    Map<String, String> artifactMetadata = new HashedMap<String, String>();
+    artifactMetadata.put(PDF_PATH, studyConsent.getPdfPath());
+    artifactMetadata.put(CONSENT_DATE, DateTimeUtils.format(studyConsent.getConsentDate()));
+    artifactMetadata.put(DATA_SHARING, studyConsent.getSharing());
+    artifactMetadata.put(STUDY_ID, studyConsent.getStudy().getCustomId());
+    artifactMetadata.put(PARTICIPANT_STUDY_ID, participantStudyEntity.getId());
+    Optional<SiteEntity> optSite =
+        siteRepository.findById(studyConsent.getParticipantStudy().getSite().getId());
+    if (optSite.isPresent()) {
+      artifactMetadata.put(SITE_ID, optSite.get().getLocation().getCustomId());
+    }
+    String gcsUri = "gs://" + appConfig.getBucketName() + "/" + filePath;
+    String consentArtifactName =
+        consentApis.createConsentArtifact(
+            artifactMetadata,
+            participantStudyEntity.getParticipantId(),
+            studyConsent.getVersion(),
+            gcsUri,
+            parentName);
+
+    // primary consent record
+    String filter1 = "user_id=\"" + participantStudyEntity.getParticipantId() + "\"";
+    String filter2 = "Metadata(\"" + CONSENT_TYPE + "\")=\"" + PRIMARY + "\"";
+    List<Consent> list = consentApis.getListOfConsents(filter1 + " AND " + filter2, parentName);
+
+    Map<String, String> consentMetadata =
+        getMetadata(studyConsent, participantStudyEntity, optSite, PRIMARY);
+    if (CollectionUtils.isEmpty(list)) {
+      consentApis.createConsents(
+          consentMetadata,
+          participantStudyEntity.getParticipantId(),
+          parentName,
+          consentArtifactName);
+    } else {
+      consentApis.updateConsents(consentMetadata, list.get(0).getName(), consentArtifactName);
+    }
+
+    // dataSharing consent record
+    String filter3 = "Metadata(\"" + CONSENT_TYPE + "\")=\"" + SHARING + "\"";
+    List<Consent> Consents = consentApis.getListOfConsents(filter1 + " AND " + filter3, parentName);
+
+    Map<String, String> dataSharingMetadata =
+        getMetadata(studyConsent, participantStudyEntity, optSite, SHARING);
+    dataSharingMetadata.put(DATA_SHARING, participantStudyEntity.getSharing());
+    if (CollectionUtils.isEmpty(Consents)) {
+      consentApis.createConsents(
+          dataSharingMetadata,
+          participantStudyEntity.getParticipantId(),
+          parentName,
+          consentArtifactName);
+    } else {
+      consentApis.updateConsents(
+          dataSharingMetadata, Consents.get(0).getName(), consentArtifactName);
+    }
+
+    logger.exit("saveConsentDetailsInConsentStore() - Ends ");
+    return consentArtifactName;
+  }
+
+  private Map<String, String> getMetadata(
+      StudyConsentEntity studyConsent,
+      ParticipantStudyEntity participantStudyEntity,
+      Optional<SiteEntity> optSite,
+      String consentType) {
+    Map<String, String> metadata = new HashedMap<String, String>();
+    metadata.put(STUDY_ID, participantStudyEntity.getStudy().getCustomId());
+    metadata.put(ENROLLED, participantStudyEntity.getEnrolledDate().toString());
+    if (optSite.isPresent()) {
+      metadata.put(SITE_ID, optSite.get().getLocation().getCustomId());
+    }
+    metadata.put(CONSENT_TYPE, consentType);
+    metadata.put(VERSION, studyConsent.getVersion());
+    return metadata;
   }
 }

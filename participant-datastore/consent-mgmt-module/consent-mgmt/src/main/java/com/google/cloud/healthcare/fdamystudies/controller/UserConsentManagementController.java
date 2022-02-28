@@ -173,7 +173,9 @@ public class UserConsentManagementController {
         consentdocumentFilepath = underDirectory + "/" + consentDocumentFileName;
       }
       String message = userConsentManagementService.saveParticipantStudies(participantStudiesList);
-      String addConsentMessage = userConsentManagementService.saveStudyConsent(studyConsent);
+      String addConsentMessage =
+          userConsentManagementService.saveStudyConsent(
+              studyConsent, participantStudies, consentdocumentFilepath);
       if ((addConsentMessage.equalsIgnoreCase(MyStudiesUserRegUtil.ErrorCodes.SUCCESS.getValue())
           && message.equalsIgnoreCase(MyStudiesUserRegUtil.ErrorCodes.SUCCESS.getValue()))) {
         if (AppConstants.STATUS_COMPLETED.equalsIgnoreCase(

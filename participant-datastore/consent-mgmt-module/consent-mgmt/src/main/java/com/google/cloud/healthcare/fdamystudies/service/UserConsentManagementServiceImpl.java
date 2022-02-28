@@ -61,8 +61,12 @@ public class UserConsentManagementServiceImpl implements UserConsentManagementSe
 
   @Override
   @Transactional
-  public String saveStudyConsent(StudyConsentEntity studyConsent) {
-    return userConsentManagementDao.saveStudyConsent(studyConsent);
+  public String saveStudyConsent(
+      StudyConsentEntity studyConsent,
+      ParticipantStudyEntity participantStudyEntity,
+      String filePath) {
+    return userConsentManagementDao.saveStudyConsent(
+        studyConsent, participantStudyEntity, filePath);
   }
 
   @Override
