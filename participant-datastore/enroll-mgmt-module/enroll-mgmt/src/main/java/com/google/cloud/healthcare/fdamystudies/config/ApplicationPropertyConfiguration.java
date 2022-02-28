@@ -25,4 +25,19 @@ public class ApplicationPropertyConfiguration {
 
   @Value("${response.server.url.participant.withdraw}")
   private String withdrawStudyUrl;
+
+  @Value("${projectId}")
+  private String projectId;
+
+  @Value("${regionId}")
+  private String regionId;
+
+  @Value("${consentDatasetId}")
+  private String consentDatasetId;
+
+  @Value("${consentstoreId}")
+  private String consentstoreId;
+
+  @Value("${enableConsentManagementAPI}")
+  private String enableConsentManagementAPI;
 }
