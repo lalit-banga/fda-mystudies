@@ -504,6 +504,9 @@ public class FdahpStudyDesignerConstants {
   public static final String VIEW_ASSOCIATED_STUDIES_MESSAGE =
       "Studies seen in the list are based on the permissions you have in the Study Builder";
 
+  public static final String FAILURE_CONSENT_STORE_MESSAGE =
+      "Sorry, an error has occurred and your request could not be processed. Please try again later";
+
   private FdahpStudyDesignerConstants() {
     // Do nothing
   }

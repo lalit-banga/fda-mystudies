@@ -27,6 +27,7 @@ import com.fdahpstudydesigner.bean.FormulaInfoBean;
 import com.fdahpstudydesigner.bo.StudyBo;
 import com.fdahpstudydesigner.bo.UserBO;
 import com.fdahpstudydesigner.bo.UserPermissions;
+import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -40,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -1344,5 +1346,29 @@ public class FdahpStudyDesignerUtil {
       platform = FdahpStudyDesignerConstants.STUDY_PLATFORM_TYPE_IOS_ANDROID;
     }
     return platform;
+  }
+
+  /**
+   * Saves file in cloud storage
+   *
+   * @param fileName
+   * @param bytes
+   * @param underDirectory
+   * @return
+   */
+  public static String saveFile(String fileName, byte[] bytes, String underDirectory) {
+
+    String absoluteFileName = underDirectory == null ? fileName : underDirectory + "/" + fileName;
+    BlobInfo blobInfo =
+        BlobInfo.newBuilder(configMap.get("cloud.bucket.name.consent.document"), absoluteFileName)
+            .build();
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    try (WriteChannel writer = storage.writer(blobInfo)) {
+
+      writer.write(ByteBuffer.wrap(bytes, 0, bytes.length));
+    } catch (IOException e) {
+      logger.error("Save file in cloud storage failed", e);
+    }
+    return "gs://" + blobInfo.getBucket() + "/" + blobInfo.getName();
   }
 }

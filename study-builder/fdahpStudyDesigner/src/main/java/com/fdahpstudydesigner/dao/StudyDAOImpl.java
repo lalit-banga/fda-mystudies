@@ -84,12 +84,14 @@ import com.fdahpstudydesigner.common.StudyBuilderAuditEvent;
 import com.fdahpstudydesigner.common.StudyBuilderAuditEventHelper;
 import com.fdahpstudydesigner.mapper.AuditEventMapper;
 import com.fdahpstudydesigner.service.StudyExportImportService;
+import com.fdahpstudydesigner.util.ConsentManagementAPIs;
 import com.fdahpstudydesigner.util.CustomMultipartFile;
 import com.fdahpstudydesigner.util.FdahpStudyDesignerConstants;
 import com.fdahpstudydesigner.util.FdahpStudyDesignerUtil;
 import com.fdahpstudydesigner.util.ImageUtility;
 import com.fdahpstudydesigner.util.ServletContextHolder;
 import com.fdahpstudydesigner.util.SessionObject;
+import com.itextpdf.html2pdf.HtmlConverter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -100,9 +102,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -117,6 +121,7 @@ import org.apache.commons.io.FileDeleteStrategy;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -143,6 +148,8 @@ public class StudyDAOImpl implements StudyDAO {
   @Autowired private NotificationDAO notificationDAO;
 
   @Autowired private StudyExportImportService studyExportImportService;
+
+  @Autowired private ConsentManagementAPIs consentApis;
 
   HibernateTemplate hibernateTemplate;
   private Query query = null;
@@ -4733,7 +4740,7 @@ public class StudyDAOImpl implements StudyDAO {
 
   @SuppressWarnings("unchecked")
   public String studyDraftCreation(
-      StudyBo studyBo, Session session, AuditLogEventRequest auditRequest) {
+      StudyBo studyBo, Session session, AuditLogEventRequest auditRequest, String userId) {
     logger.entry("begin studyDraftCreation()");
     List<StudyPageBo> studyPageBo = null;
     List<StudyPermissionBO> studyPermissionList = null;
@@ -5661,6 +5668,7 @@ public class StudyDAOImpl implements StudyDAO {
                 consentBo.setEnrollAgain(false);
                 session.save(consentBo);
               }
+              saveUnsignedDocumentOnCloud(studyBo, newConsentBo, userId);
             }
 
             query =
@@ -5859,7 +5867,7 @@ public class StudyDAOImpl implements StudyDAO {
             }
             message = FdahpStudyDesignerConstants.SUCCESS;
             // StudyDraft version creation
-            message = studyDraftCreation(studyBo, session, auditRequest);
+            message = studyDraftCreation(studyBo, session, auditRequest, sesObj.getUserId());
             if (message.equalsIgnoreCase(FdahpStudyDesignerConstants.SUCCESS)) {
               if (buttonText.equalsIgnoreCase(FdahpStudyDesignerConstants.ACTION_LUNCH)) {
                 // notification text --
@@ -8627,5 +8635,67 @@ public class StudyDAOImpl implements StudyDAO {
     }
     logger.exit("deleteStudyById() - Ends");
     return message;
+  }
+
+  /**
+   * saves unsigned document in cloud storage
+   *
+   * @param studyBo
+   * @param newConsentBo
+   * @throws Exception
+   */
+  private void saveUnsignedDocumentOnCloud(StudyBo studyBo, ConsentBo newConsentBo, String userId)
+      throws Exception {
+    logger.entry("begin saveUnsignedDocumentOnCloud()");
+    Map<String, String> configMap = FdahpStudyDesignerUtil.getAppProperties();
+    String enabled = configMap.get("enableConsentManagementAPI");
+    try {
+      if (StringUtils.isNotEmpty(enabled) && Boolean.valueOf(enabled)) {
+
+        // appending study name to unsigned document
+        StringBuilder docBuilder =
+            new StringBuilder("<br><div style=\"padding: 10px 10px 10px 10px;\" class='header'>");
+        docBuilder.append(
+            String.format(
+                "<h1 style=\"text-align: center; font-family:sans-serif-light;\">%1$s</h1>",
+                studyBo.getName()));
+
+        docBuilder.append("</div><br>");
+        docBuilder.append(newConsentBo.getConsentDocContent());
+
+        String consentDoc =
+            StringUtils.isEmpty(newConsentBo.getConsentDocContent())
+                ? ""
+                : StringEscapeUtils.escapeHtml4(
+                    StringEscapeUtils.unescapeHtml4(
+                        docBuilder
+                            .toString()
+                            .replaceAll("&#34;", "'")
+                            .replaceAll("em>", "i>")
+                            .replaceAll("<a", "<a style='text-decoration:underline;color:blue;'")));
+
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        HtmlConverter.convertToPdf(Jsoup.parse(consentDoc).wholeText(), byteStream);
+
+        String gcsUri =
+            FdahpStudyDesignerUtil.saveFile(
+                newConsentBo.getVersion()
+                    + "_"
+                    + new SimpleDateFormat("MMddyyyyHHmmss").format(new Date())
+                    + ".pdf",
+                byteStream.toByteArray(),
+                studyBo.getCustomStudyId() + "/" + "unsignedDocuments");
+
+        Map<String, String> metadata = new HashMap<String, String>();
+        metadata.put("StudyId", studyBo.getCustomStudyId());
+
+        consentApis.createConsentArtifact(
+            metadata, userId, String.format("%.1f", newConsentBo.getVersion()), gcsUri);
+      }
+
+    } catch (IOException e) {
+      logger.error("StudyDAOImpl - saveUnsignedDocumentOnCloud() - ERROR ", e.getMessage());
+    }
+    logger.exit("saveUnsignedDocumentOnCloud() - Ends");
   }
 }
