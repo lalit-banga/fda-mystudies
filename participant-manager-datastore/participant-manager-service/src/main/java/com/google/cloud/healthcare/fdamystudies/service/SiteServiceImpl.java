@@ -16,6 +16,7 @@ import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.EM
 import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.INACTIVE_STATUS;
 import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.OPEN;
 import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.OPEN_STUDY;
+import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.PARTICIPANT_STUDY_ID;
 import static com.google.cloud.healthcare.fdamystudies.common.CommonConstants.STATUS_ACTIVE;
 import static com.google.cloud.healthcare.fdamystudies.common.ParticipantManagerEvent.ENROLLMENT_TARGET_UPDATED;
 import static com.google.cloud.healthcare.fdamystudies.common.ParticipantManagerEvent.INVITATION_EMAIL_FAILED;
@@ -31,6 +32,7 @@ import static com.google.cloud.healthcare.fdamystudies.common.ParticipantManager
 import static com.google.cloud.healthcare.fdamystudies.common.ParticipantManagerEvent.SITE_DECOMMISSIONED_FOR_STUDY;
 import static com.google.cloud.healthcare.fdamystudies.common.ParticipantManagerEvent.SITE_PARTICIPANT_REGISTRY_VIEWED;
 
+import com.google.api.services.healthcare.v1.model.ConsentArtifact;
 import com.google.cloud.healthcare.fdamystudies.beans.AuditLogEventRequest;
 import com.google.cloud.healthcare.fdamystudies.beans.ConsentHistory;
 import com.google.cloud.healthcare.fdamystudies.beans.EmailRequest;
@@ -65,6 +67,7 @@ import com.google.cloud.healthcare.fdamystudies.common.RandomAlphanumericGenerat
 import com.google.cloud.healthcare.fdamystudies.common.SiteStatus;
 import com.google.cloud.healthcare.fdamystudies.config.AppPropertyConfig;
 import com.google.cloud.healthcare.fdamystudies.exceptions.ErrorCodeException;
+import com.google.cloud.healthcare.fdamystudies.mapper.ConsentManagementAPIs;
 import com.google.cloud.healthcare.fdamystudies.mapper.ConsentMapper;
 import com.google.cloud.healthcare.fdamystudies.mapper.ParticipantMapper;
 import com.google.cloud.healthcare.fdamystudies.mapper.SiteMapper;
@@ -179,6 +182,8 @@ public class SiteServiceImpl implements SiteService {
   @Autowired private ParticipantManagerUtil participantManagerUtil;
 
   @Autowired ResourceLoader resourceLoader;
+
+  @Autowired ConsentManagementAPIs consentApis;
 
   @Override
   @Transactional
@@ -744,13 +749,24 @@ public class SiteServiceImpl implements SiteService {
             .map(ParticipantStudyEntity::getId)
             .collect(Collectors.toList());
 
-    if (CollectionUtils.isNotEmpty(participantStudyIds)) {
-      List<StudyConsentEntity> studyConsents =
-          studyConsentRepository.findByParticipantRegistrySiteId(participantStudyIds);
+    String flag = appPropertyConfig.getEnableConsentManagementAPI();
+    if (StringUtils.isNotEmpty(flag) && Boolean.valueOf(flag)) {
+      if (CollectionUtils.isNotEmpty(participantStudyIds)) {
+        getConsentHistoryFromConsentStore(participantDetail, participantStudyIds);
+      }
+    } else {
 
-      List<ConsentHistory> consentHistories =
-          studyConsents.stream().map(ConsentMapper::toConsentHistory).collect(Collectors.toList());
-      participantDetail.getConsentHistory().addAll(consentHistories);
+      if (CollectionUtils.isNotEmpty(participantStudyIds)) {
+        List<StudyConsentEntity> studyConsents =
+            studyConsentRepository.findByParticipantRegistrySiteId(participantStudyIds);
+
+        List<ConsentHistory> consentHistories =
+            studyConsents
+                .stream()
+                .map(ConsentMapper::toConsentHistory)
+                .collect(Collectors.toList());
+        participantDetail.getConsentHistory().addAll(consentHistories);
+      }
     }
 
     logger.exit(
@@ -786,6 +802,45 @@ public class SiteServiceImpl implements SiteService {
       }
     }
     return null;
+  }
+
+  /**
+   * Fetches consent history details from consent store
+   *
+   * @param participantDetail
+   * @param participantStudyIds
+   */
+  private void getConsentHistoryFromConsentStore(
+      ParticipantDetail participantDetail, List<String> participantStudyIds) {
+    logger.entry("begin getConsentHistoryFromConsentStore()");
+    String parentName =
+        String.format(
+            "projects/%s/locations/%s/datasets/%s/consentStores/%s",
+            appPropertyConfig.getProjectId(),
+            appPropertyConfig.getRegionId(),
+            appPropertyConfig.getConsentDatasetId(),
+            appPropertyConfig.getConsentstoreId());
+
+    List<ConsentArtifact> consentArtifacts = new ArrayList<>();
+    for (String participantStudyId : participantStudyIds) {
+
+      String filter = "Metadata(" + PARTICIPANT_STUDY_ID + ")=\"" + participantStudyId + "\"";
+      List<ConsentArtifact> consentArtifactList =
+          consentApis.getListOfConsentArtifact(filter, parentName);
+      if (CollectionUtils.isNotEmpty(consentArtifactList)) {
+        consentArtifacts.addAll(consentArtifactList);
+      }
+    }
+
+    List<ConsentHistory> consentHistories =
+        (List<ConsentHistory>)
+            CollectionUtils.emptyIfNull(
+                consentArtifacts
+                    .stream()
+                    .map(ConsentMapper::toConsentHistory)
+                    .sorted(Comparator.comparing(ConsentHistory::getCreateTimeStamp).reversed())
+                    .collect(Collectors.toList()));
+    participantDetail.getConsentHistory().addAll(consentHistories);
   }
 
   @Override

@@ -74,4 +74,19 @@ public class AppPropertyConfig implements Serializable {
 
   @Value("${study.builder.cloud.bucket.name}")
   private String studyBuilderCloudBucketName;
+
+  @Value("${projectId}")
+  private String projectId;
+
+  @Value("${regionId}")
+  private String regionId;
+
+  @Value("${consentDatasetId}")
+  private String consentDatasetId;
+
+  @Value("${consentstoreId}")
+  private String consentstoreId;
+
+  @Value("${enableConsentManagementAPI}")
+  private String enableConsentManagementAPI;
 }
