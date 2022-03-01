@@ -45,6 +45,7 @@ import com.google.cloud.healthcare.fdamystudies.bean.StudyActivityMetadataReques
 import com.google.cloud.healthcare.fdamystudies.bean.SuccessResponseBean;
 import com.google.cloud.healthcare.fdamystudies.beans.AuditLogEventRequest;
 import com.google.cloud.healthcare.fdamystudies.common.ResponseServerAuditLogHelper;
+import com.google.cloud.healthcare.fdamystudies.config.ApplicationConfiguration;
 import com.google.cloud.healthcare.fdamystudies.mapper.AuditEventMapper;
 import com.google.cloud.healthcare.fdamystudies.response.model.ParticipantInfoEntity;
 import com.google.cloud.healthcare.fdamystudies.service.ActivityResponseProcessorService;
@@ -86,6 +87,8 @@ public class ProcessActivityResponseController {
   @Autowired private ParticipantStudyInfoService partStudyInfoService;
 
   @Autowired private ActivityResponseProcessorService activityResponseProcessorService;
+
+  @Autowired private ApplicationConfiguration appConfig;
 
   @Autowired
   private ParticipantActivityStateResponseService participantActivityStateResponseService;
@@ -223,8 +226,13 @@ public class ProcessActivityResponseController {
         responseServerAuditLogHelper.logEvent(ACTIVTY_METADATA_RETRIEVED, auditRequest, map);
 
         // Get ParticipantStudyInfo from Registration Server
+        String flag = appConfig.getEnableConsentManagementAPI();
         ParticipantStudyInformation partStudyInfo =
-            partStudyInfoService.getParticipantStudyInfo(studyId, participantId, auditRequest);
+            !StringUtils.isEmpty(flag) && Boolean.valueOf(flag)
+                ? partStudyInfoService.getParticipantStudyInfoFromConsent(
+                    studyId, participantId, auditRequest)
+                : partStudyInfoService.getParticipantStudyInfo(
+                    studyId, participantId, auditRequest);
         if (partStudyInfo == null) {
           logger.error("GetParticipantStudyInfo() - ParticipantInfo is null. Study Id: " + studyId);
           responseServerAuditLogHelper.logEvent(
