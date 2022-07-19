@@ -454,7 +454,7 @@ class NetworkWebServiceHandler: NSObject, URLSessionDelegate {
           responseDict =
             try JSONSerialization.jsonObject(with: data!, options: [])
             as? NSDictionary
-          print("4response---\(requestName)---\(responseDict)")
+//          print("4response---\(requestName)---\(responseDict)")
           
         } catch let error {
           Logger.sharedInstance.error("Serialization error: \(requestName ?? "")", error.localizedDescription)
