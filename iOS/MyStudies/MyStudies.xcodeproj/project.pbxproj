@@ -237,7 +237,6 @@
 		94D20E9F1E9DFFE7005C3531 /* DBActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D20E9E1E9DFFE7005C3531 /* DBActivity.swift */; };
 		94FF031B1E95275D009F191B /* ReachoutOptionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94FF031A1E95275D009F191B /* ReachoutOptionsViewController.swift */; };
 		94FF031F1E952B0A009F191B /* ReachoutOptionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94FF031E1E952B0A009F191B /* ReachoutOptionCell.swift */; };
-		E18E50D7288699840054661A /* Dev21-5-01.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = E18E50D4288699840054661A /* Dev21-5-01.xcconfig */; };
 		F6972762DC7AE64877A9D707 /* Pods_MyStudies.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DE331A04C22D9DDBEF9C8BB2 /* Pods_MyStudies.framework */; };
 /* End PBXBuildFile section */
 
@@ -550,7 +549,6 @@
 		B908C58D31310A5436B433A0 /* Pods-MyStudies.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MyStudies.release.xcconfig"; path = "Pods/Target Support Files/Pods-MyStudies/Pods-MyStudies.release.xcconfig"; sourceTree = "<group>"; };
 		D8009EF16382C7D8C349B5A9 /* Pods-HPHCTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-HPHCTests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-HPHCTests/Pods-HPHCTests.debug.xcconfig"; sourceTree = "<group>"; };
 		DE331A04C22D9DDBEF9C8BB2 /* Pods_MyStudies.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MyStudies.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		E18E50D4288699840054661A /* Dev21-5-01.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = "Dev21-5-01.xcconfig"; sourceTree = "<group>"; };
 		E4CF7BB238C017BF7E2A6346 /* Pods_HPHCUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_HPHCUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -695,7 +693,6 @@
 			isa = PBXGroup;
 			children = (
 				84D1E78327BFBE5B00619384 /* Default.xcconfig */,
-				E18E50D4288699840054661A /* Dev21-5-01.xcconfig */,
 				84F9E38026FC27A1004A9FE8 /* GoogleService-Info.plist */,
 				6F10BB15234DDFDA006388E2 /* Branding */,
 				6FE00CD5238FEDE80067A7B8 /* Utils */,
@@ -1983,7 +1980,6 @@
 				89893F0622B1125300A846CE /* Assets.xcassets in Resources */,
 				89893F0722B112A000A846CE /* LaunchScreen.storyboard in Resources */,
 				6E7D2D8E1E43445600763D4C /* UserPreferences.plist in Resources */,
-				E18E50D7288699840054661A /* Dev21-5-01.xcconfig in Resources */,
 				9450598F1F29FA2C007906A7 /* AppGlossary.pdf in Resources */,
 				6ED593731F011D5B00AC3636 /* Verdana Italic.ttf in Resources */,
 				6F83039D24864D6B009409A5 /* Localizable.strings.txt in Resources */,
@@ -2418,7 +2414,7 @@
 /* Begin XCBuildConfiguration section */
 		6E7D2D7C1E433E8800763D4C /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E18E50D4288699840054661A /* Dev21-5-01.xcconfig */;
+			baseConfigurationReference = 84D1E78327BFBE5B00619384 /* Default.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
@@ -2553,7 +2549,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 3.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.btc.mystudiesgcp;
+				PRODUCT_BUNDLE_IDENTIFIER = "";
 				PRODUCT_NAME = "FDA MyStudies";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "MyStudies/Utils/Helpers/FDA-Bridging-Header.h";
@@ -2567,7 +2563,7 @@
 		};
 		6E7D2D801E433E8800763D4C /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E18E50D4288699840054661A /* Dev21-5-01.xcconfig */;
+			baseConfigurationReference = 84D1E78327BFBE5B00619384 /* Default.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -2575,16 +2571,16 @@
 				CODE_SIGN_ENTITLEMENTS = MyStudies/FDA.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 82;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 3485DDCN2M;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = YES;
 				INFOPLIST_FILE = MyStudies/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.btc.mystudiesgcp;
+				PRODUCT_BUNDLE_IDENTIFIER = "";
 				PRODUCT_NAME = "FDA MyStudies";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "MyStudies/Utils/Helpers/FDA-Bridging-Header.h";
